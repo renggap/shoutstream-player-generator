@@ -1,7 +1,6 @@
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import UnoCSS from 'unocss/vite';
 import { corsProxyPlugin } from './plugins/cors-proxy-plugin';
 
 export default defineConfig({
@@ -11,7 +10,6 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    UnoCSS(),
     corsProxyPlugin({
       // SECURITY WARNING: allowedOrigins: [] allows any origin - suitable for development only
       // In production, configure explicit allowlist: e.g., ['https://example.com', 'https://stream.example.com']
