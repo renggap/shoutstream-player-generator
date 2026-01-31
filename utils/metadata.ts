@@ -59,7 +59,7 @@ function parseIcecastMetadata(data: any): { songTitle: string; listeners: string
  */
 function parseShoutcastV1Metadata(data: any): { songTitle: string; listeners: string | null } {
   return {
-    songTitle: data.songtitle || data.title || 'Unknown Song',
+    songTitle: data.songtitle || data.title || data.server_name || 'Unknown Song',
     listeners: data.currentlisteners !== undefined && data.currentlisteners !== null
       ? String(data.currentlisteners)
       : (data.listeners !== undefined && data.listeners !== null ? String(data.listeners) : null),
@@ -82,7 +82,7 @@ function parseShoutcastV2Metadata(data: any): { songTitle: string; listeners: st
 
         if (stream && typeof stream === 'object' && !Array.isArray(stream)) {
           return {
-            songTitle: stream.songtitle || stream.title || 'Unknown Song',
+            songTitle: stream.songtitle || stream.title || stream.server_name || 'Unknown Song',
             listeners: stream.currentlisteners !== undefined && stream.currentlisteners !== null
               ? String(stream.currentlisteners)
               : (stream.listeners !== undefined && stream.listeners !== null ? String(stream.listeners) : null),
@@ -92,7 +92,7 @@ function parseShoutcastV2Metadata(data: any): { songTitle: string; listeners: st
 
       // Fall back to statistics root level
       return {
-        songTitle: stats.songtitle || stats.title || 'Unknown Song',
+        songTitle: stats.songtitle || stats.title || stats.server_name || 'Unknown Song',
         listeners: stats.currentlisteners !== undefined && stats.currentlisteners !== null
           ? String(stats.currentlisteners)
           : (stats.listeners !== undefined && stats.listeners !== null ? String(stats.listeners) : null),
@@ -101,10 +101,42 @@ function parseShoutcastV2Metadata(data: any): { songTitle: string; listeners: st
 
     // Alternative v2 format
     return {
-      songTitle: data.songtitle || data.title || 'Unknown Song',
+      songTitle: data.songtitle || data.title || data.server_name || 'Unknown Song',
       listeners: data.currentlisteners !== undefined && data.currentlisteners !== null
         ? String(data.currentlisteners)
         : (data.listeners !== undefined && data.listeners !== null ? String(data.listeners) : null),
+    };
+  } catch {
+    return {
+      songTitle: 'Unknown Song',
+      listeners: null,
+    };
+  }
+}
+
+/**
+ * Parse metadata from Shoutcast v2 7.html response (HTML page)
+ */
+function parseShoutcastV2Html(html: string): { songTitle: string; listeners: string | null } {
+  try {
+    // Extract song title from HTML
+    const songTitleMatch = html.match(/Current Song:<\/strong>\s*([^<\n]+)/i);
+    const songTitle = songTitleMatch ? songTitleMatch[1].trim() : null;
+
+    // Extract listeners from HTML
+    const listenersMatch = html.match(/Listeners:<\/strong>\s*(\d+)/i);
+    const listeners = listenersMatch ? listenersMatch[1] : null;
+
+    // Try alternate patterns
+    const altSongMatch = html.match(/<span[^>]*class="[^"]*song[^"]*"[^>]*>([^<]+)<\/span>/i);
+    const altSong = altSongMatch ? altSongMatch[1].trim() : null;
+
+    const altListenersMatch = html.match(/<td[^>]*>\s*(\d+)\s*<\/td>\s*<td[^>]*>Listeners/i);
+    const altListeners = altListenersMatch ? altListenersMatch[1] : null;
+
+    return {
+      songTitle: songTitle || altSong || 'Unknown Song',
+      listeners: listeners || altListeners || null,
     };
   } catch {
     return {
@@ -119,12 +151,22 @@ function parseShoutcastV2Metadata(data: any): { songTitle: string; listeners: st
  */
 async function tryFetchEndpoint(
   url: string,
-  parser: (data: any) => { songTitle: string; listeners: string | null }
+  parser: (data: any) => { songTitle: string; listeners: string | null },
+  isHtmlParser = false
 ): Promise<{ success: boolean; data?: { songTitle: string; listeners: string | null } }> {
   try {
     const response = await proxyFetch(url);
 
     if (!response.ok) {
+      return { success: false };
+    }
+
+    if (isHtmlParser) {
+      const text = await response.text();
+      if (text) {
+        const parsed = parser(text);
+        return { success: true, data: parsed };
+      }
       return { success: false };
     }
 
@@ -140,9 +182,19 @@ async function tryFetchEndpoint(
     // Try to parse as JSON anyway
     const text = await response.text();
     if (text) {
-      const data = JSON.parse(text);
-      const parsed = parser(data);
-      return { success: true, data: parsed };
+      try {
+        const data = JSON.parse(text);
+        const parsed = parser(data);
+        return { success: true, data: parsed };
+      } catch {
+        // Not JSON, try HTML parser for Shoutcast v2
+        if (parser === parseShoutcastV2Metadata || parser === parseShoutcastV1Metadata) {
+          const htmlParsed = parseShoutcastV2Html(text);
+          if (htmlParsed.songTitle !== 'Unknown Song') {
+            return { success: true, data: htmlParsed };
+          }
+        }
+      }
     }
 
     return { success: false };
@@ -157,6 +209,7 @@ async function tryFetchEndpoint(
  * 1. Icecast /status-json.xsl
  * 2. Shoutcast v1 /stats?sid=1&json=1
  * 3. Shoutcast v2 /api/statistics
+ * 4. Shoutcast v2 / (7.html for parsing)
  *
  * @param streamUrl The URL of the stream
  * @returns Promise with metadata including song title and listener count
@@ -165,46 +218,59 @@ export async function fetchStreamMetadata(streamUrl: string): Promise<{
   songTitle: string;
   listeners: string | null;
 }> {
+  // Validate URL first
   try {
-    const url = new URL(streamUrl);
-    const baseUrl = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`;
-
-    // Try Icecast endpoint first (most common)
-    const icecastResult = await tryFetchEndpoint(
-      `${baseUrl}/status-json.xsl`,
-      parseIcecastMetadata
-    );
-
-    if (icecastResult.success && icecastResult.data) {
-      return icecastResult.data;
-    }
-
-    // Try Shoutcast v1 endpoint
-    const scV1Result = await tryFetchEndpoint(
-      `${baseUrl}/stats?sid=1&json=1`,
-      parseShoutcastV1Metadata
-    );
-
-    if (scV1Result.success && scV1Result.data) {
-      return scV1Result.data;
-    }
-
-    // Try Shoutcast v2 endpoint
-    const scV2Result = await tryFetchEndpoint(
-      `${baseUrl}/api/statistics`,
-      parseShoutcastV2Metadata
-    );
-
-    if (scV2Result.success && scV2Result.data) {
-      return scV2Result.data;
-    }
-
-    // All endpoints failed
-    throw new Error('Unable to fetch metadata from any supported endpoint');
+    new URL(streamUrl);
   } catch (error) {
-    console.error('Failed to fetch stream metadata:', error);
-    throw error;
+    throw new Error('Invalid stream URL');
   }
+
+  const url = new URL(streamUrl);
+  const baseUrl = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`;
+
+  // Try Icecast endpoint first (most common)
+  const icecastResult = await tryFetchEndpoint(
+    `${baseUrl}/status-json.xsl`,
+    parseIcecastMetadata
+  );
+
+  if (icecastResult.success && icecastResult.data) {
+    return icecastResult.data;
+  }
+
+  // Try Shoutcast v1 endpoint
+  const scV1Result = await tryFetchEndpoint(
+    `${baseUrl}/stats?sid=1&json=1`,
+    parseShoutcastV1Metadata
+  );
+
+  if (scV1Result.success && scV1Result.data) {
+    return scV1Result.data;
+  }
+
+  // Try Shoutcast v2 API endpoint
+  const scV2Result = await tryFetchEndpoint(
+    `${baseUrl}/api/statistics`,
+    parseShoutcastV2Metadata
+  );
+
+  if (scV2Result.success && scV2Result.data) {
+    return scV2Result.data;
+  }
+
+  // Try Shoutcast v2 7.html page (fallback)
+  const scV2HtmlResult = await tryFetchEndpoint(
+    `${baseUrl}/`,
+    parseShoutcastV2Html,
+    true
+  );
+
+  if (scV2HtmlResult.success && scV2HtmlResult.data) {
+    return scV2HtmlResult.data;
+  }
+
+  // All endpoints failed - throw error
+  throw new Error('Unable to fetch metadata from any supported endpoint');
 }
 
 // Re-export isDevServerAvailable for convenience

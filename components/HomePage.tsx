@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PlayIcon } from './icons/PlayIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
+import { normalizeStreamUrl } from '../utils/stream-url';
 
 interface HomePageProps {
   onGenerate: (streamUrl: string, logoUrl: string) => void;
@@ -27,14 +28,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
         return { isValid: false, error: 'Please enter a valid stream URL with a hostname.' };
       }
 
-      let normalizedUrl = url.trim();
-
-      if (!normalizedUrl.includes(';stream') && !normalizedUrl.split('/').pop()?.includes('.')) {
-        if (!normalizedUrl.endsWith('/')) {
-          normalizedUrl += '/';
-        }
-        normalizedUrl += ';stream.mp3';
-      }
+      // Normalize URL for Shoutcast/Icecast servers
+      const normalizedUrl = normalizeStreamUrl(url);
 
       return { isValid: true, normalizedUrl };
     } catch (error) {

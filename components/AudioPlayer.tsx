@@ -6,6 +6,7 @@ import { VolumeOffIcon } from './icons/VolumeOffIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { UserIcon } from './icons/UserIcon';
 import { fetchStreamMetadata } from '../utils/metadata';
+import { generateStreamUrlVariants } from '../utils/stream-url';
 
 interface AudioPlayerProps {
   streamUrl: string;
@@ -22,19 +23,25 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   const [logoError, setLogoError] = useState(false);
   const [streamHealth, setStreamHealth] = useState<'unknown' | 'healthy' | 'unhealthy'>('unknown');
   const retryCountRef = useRef(0);
+  const urlVariantIndexRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Generate all possible URL variants for this stream
+  const urlVariants = useMemo(() => generateStreamUrlVariants(streamUrl), [streamUrl]);
+  const currentUrlIndex = urlVariantIndexRef.current;
 
   // Enhanced CORS proxy handling with local proxy
   const effectiveStreamUrl = useMemo(() => {
-    const isInsecureStream = streamUrl.startsWith('http:') && window.location.protocol === 'https:';
+    const url = urlVariants[currentUrlIndex];
+    const isInsecureStream = url.startsWith('http:') && window.location.protocol === 'https:';
 
     if (isInsecureStream) {
       console.log('Insecure stream detected. Using local CORS proxy.');
-      return `/api/proxy?url=${encodeURIComponent(streamUrl)}`;
+      return `/api/proxy?url=${encodeURIComponent(url)}`;
     }
 
-    return streamUrl;
-  }, [streamUrl]);
+    return url;
+  }, [urlVariants, currentUrlIndex]);
 
   // Update audio src when effectiveStreamUrl changes
   useEffect(() => {
@@ -131,6 +138,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         setStatus('Playing');
         setStreamHealth('healthy'); // Stream is healthy when actually playing
         retryCountRef.current = 0; // Reset retry count on successful play
+        urlVariantIndexRef.current = 0; // Reset URL variant index on success
     };
 
     const handleError = (e: Event) => {
@@ -138,6 +146,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         const error = audio.error;
 
         let errorMessage = 'Stream error occurred.';
+
+        // Try next URL variant if available
+        if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && urlVariantIndexRef.current < urlVariants.length - 1) {
+          const nextIndex = urlVariantIndexRef.current + 1;
+          urlVariantIndexRef.current = nextIndex;
+          const nextUrl = urlVariants[nextIndex];
+          console.log(`Current URL variant failed, trying variant ${nextIndex + 1}/${urlVariants.length}:`, nextUrl);
+
+          // Reset audio source to next variant
+          const isInsecureNext = nextUrl.startsWith('http:') && window.location.protocol === 'https:';
+          audio.src = isInsecureNext ? `/api/proxy?url=${encodeURIComponent(nextUrl)}` : nextUrl;
+          audio.load();
+          setStatus(`Trying alternative stream path (${nextIndex + 1}/${urlVariants.length})...`);
+          setStreamHealth('unknown');
+          return;
+        }
 
         if (error) {
           switch (error.code) {
@@ -150,7 +174,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
               setStreamHealth('unhealthy');
               break;
             case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-              errorMessage = 'Stream source not supported.';
+              errorMessage = 'Stream source not supported. All URL variants failed.';
               setStreamHealth('unhealthy');
               break;
             default:
@@ -166,13 +190,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         setStatus(errorMessage);
         setIsPlaying(false);
 
-        // Auto-retry for network errors
-        if (error?.code === MediaError.MEDIA_ERR_NETWORK && retryCountRef.current < 3) {
+        // Auto-retry for network errors (only if no more URL variants)
+        if (error?.code === MediaError.MEDIA_ERR_NETWORK && urlVariantIndexRef.current >= urlVariants.length - 1 && retryCountRef.current < 3) {
           setTimeout(() => {
             if (audioRef.current) {
+              // Reset to first URL variant
+              urlVariantIndexRef.current = 0;
               const currentRetry = retryCountRef.current + 1;
               retryCountRef.current = currentRetry;
               console.log(`Retrying stream connection (attempt ${currentRetry})`);
+
+              const isInsecureUrl = urlVariants[0].startsWith('http:') && window.location.protocol === 'https:';
+              audioRef.current.src = isInsecureUrl ? `/api/proxy?url=${encodeURIComponent(urlVariants[0])}` : urlVariants[0];
               audioRef.current.load();
             }
           }, 2000 * (retryCountRef.current + 1));
