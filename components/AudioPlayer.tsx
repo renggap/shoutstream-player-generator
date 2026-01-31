@@ -238,16 +238,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   };
 
   return (
-    <div className="w-full max-w-md bg-white dark:bg-gray-800/50 backdrop-blur-sm shadow-2xl rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 animate-slide-up">
+    <div className="card-elevated">
       <div className="flex flex-col items-center">
-        <div className={`relative w-48 h-48 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mb-6 transition-all duration-500 overflow-hidden ${isPlaying ? 'scale-105 shadow-lg' : 'scale-100'}`}>
-          <div className={`absolute inset-0 border-4 border-blue-500/50 rounded-full ${isPlaying ? 'animate-pulse-slow' : ''}`}></div>
-          <div className={`absolute inset-2 border-2 border-purple-500/30 rounded-full ${isPlaying ? 'animate-pulse-slow animation-delay-2s' : ''}`}></div>
-          
+        <div className={`relative w-32 h-32 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-2xl mb-6 transition-all duration-500 overflow-hidden ${isPlaying ? 'scale-105 shadow-lg' : 'scale-100'}`}>
           {logoUrl && !logoError ? (
             <img src={logoUrl} alt="Stream logo" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
           ) : (
-            <MusicNoteIcon className="w-24 h-24 text-gray-400 dark:text-gray-500"/>
+            <MusicNoteIcon className="w-16 h-16 text-gray-400 dark:text-gray-500"/>
           )}
         </div>
 
@@ -255,12 +252,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
             <div className="relative w-full h-7 overflow-hidden">
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-max animate-marquee whitespace-nowrap">
-                        <span className="text-xl font-bold text-gray-800 dark:text-gray-200 mx-4" title={metadata.songTitle}>{metadata.songTitle}</span>
-                        <span className="text-xl font-bold text-gray-800 dark:text-gray-200 mx-4" title={metadata.songTitle}>{metadata.songTitle}</span>
+                        <span className="text-xl font-bold text-graphite dark:text-white mx-4" title={metadata.songTitle}>{metadata.songTitle}</span>
+                        <span className="text-xl font-bold text-graphite dark:text-white mx-4" title={metadata.songTitle}>{metadata.songTitle}</span>
                     </div>
                 </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">{status}</p>
+            <p className="text-sm text-apple-text-secondary font-medium mt-1">{status}</p>
 
             {/* Stream Health Indicator */}
             <div className="flex items-center justify-center gap-2 mt-2">
@@ -271,7 +268,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
               } ${
                 streamHealth === 'unknown' ? 'animate-pulse' : ''
               }`} title={`Stream status: ${streamHealth}`} />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-apple-text-secondary">
                 {streamHealth === 'healthy' ? 'Connected' :
                  streamHealth === 'unhealthy' ? 'Disconnected' :
                  'Checking...'}
@@ -279,7 +276,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
             </div>
 
             {metadata.listeners !== null && (
-                <div className="flex items-center justify-center gap-2 mt-2 text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center gap-2 mt-2 text-apple-text-secondary">
                     <UserIcon className="w-4 h-4" />
                     <span>{metadata.listeners} Listeners</span>
                 </div>
@@ -291,7 +288,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         <div className="flex items-center justify-center w-full mb-4 gap-3">
             <button
                 onClick={togglePlayPause}
-                className="w-20 h-20 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 rounded-full text-white shadow-lg hover:scale-110 transform transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50"
+                className="w-20 h-20 flex items-center justify-center bg-royal-blue rounded-full text-white shadow-lg hover:scale-110 transform transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-royal-blue/50"
                 aria-label={isPlaying ? 'Stop' : 'Play'}
             >
                 {isPlaying ? <StopIcon className="w-8 h-8" /> : <PlayIcon className="w-10 h-10" />}
@@ -315,9 +312,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
                 </button>
             )}
         </div>
-        
+
         <div className="flex items-center gap-3 w-full">
-            <button onClick={toggleMute} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors" aria-label={isMuted ? 'Unmute' : 'Mute'}>
+            <button onClick={toggleMute} className="text-apple-text-secondary hover:text-graphite dark:hover:text-white transition-colors" aria-label={isMuted ? 'Unmute' : 'Mute'}>
                 {isMuted || volume === 0 ? <VolumeOffIcon className="w-6 h-6" /> : <VolumeUpIcon className="w-6 h-6" />}
             </button>
             <input
@@ -327,7 +324,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
                 step="0.01"
                 value={isMuted ? 0 : volume}
                 onChange={handleVolumeChange}
-                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-2 bg-apple-gray-dark dark:bg-dm-gray-light rounded-lg appearance-none cursor-pointer accent-royal-blue"
                 aria-label="Volume slider"
             />
         </div>
