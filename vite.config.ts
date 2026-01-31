@@ -28,5 +28,10 @@ export default defineConfig({
     rollupOptions: {
       external: []
     }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./test-setup.ts'],
   }
 });

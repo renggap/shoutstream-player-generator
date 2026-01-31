@@ -21,7 +21,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   const [metadata, setMetadata] = useState<{ songTitle: string; listeners: string | null }>({ songTitle: 'Loading...', listeners: null });
   const [logoError, setLogoError] = useState(false);
   const [streamHealth, setStreamHealth] = useState<'unknown' | 'healthy' | 'unhealthy'>('unknown');
-  const [retryCount, setRetryCount] = useState(0);
+  const retryCountRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Enhanced CORS proxy handling with local proxy
@@ -52,7 +52,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         setIsPlaying(false);
         setStatus('Loading...');
         setStreamHealth('unknown');
-        setRetryCount(0);
+        retryCountRef.current = 0;
       }
     }
   }, [effectiveStreamUrl]);
@@ -130,7 +130,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
     const handlePlaying = () => {
         setStatus('Playing');
         setStreamHealth('healthy'); // Stream is healthy when actually playing
-        setRetryCount(0); // Reset retry count on successful play
+        retryCountRef.current = 0; // Reset retry count on successful play
     };
 
     const handleError = (e: Event) => {
@@ -167,13 +167,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         setIsPlaying(false);
 
         // Auto-retry for network errors
-        if (error?.code === MediaError.MEDIA_ERR_NETWORK && retryCount < 3) {
+        if (error?.code === MediaError.MEDIA_ERR_NETWORK && retryCountRef.current < 3) {
           setTimeout(() => {
             if (audioRef.current) {
-              console.log(`Retrying stream connection (attempt ${retryCount + 1})`);
+              const currentRetry = retryCountRef.current + 1;
+              retryCountRef.current = currentRetry;
+              console.log(`Retrying stream connection (attempt ${currentRetry})`);
               audioRef.current.load();
             }
-          }, 2000 * (retryCount + 1));
+          }, 2000 * (retryCountRef.current + 1));
         }
     };
 
@@ -301,7 +303,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
                     onClick={() => {
                         setStreamHealth('unknown');
                         setStatus('Retrying connection...');
-                        setRetryCount(0);
+                        retryCountRef.current = 0;
                         if (audioRef.current) {
                             audioRef.current.load();
                         }
