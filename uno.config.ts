@@ -20,6 +20,7 @@ export default defineConfig({
       'dm-gray': '#1C1C1E',
       'dm-gray-light': '#38383A',
       'dm-text': '#EBEBF5',
+      'dm-text-secondary': '#8E8E93',
 
       // Accent colors
       'royal-blue': '#007AFF',

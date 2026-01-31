@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { AudioPlayer } from './AudioPlayer';
-import { WhatsappIcon } from './icons/WhatsappIcon';
-import { TelegramIcon } from './icons/TelegramIcon';
-import { CopyIcon } from './icons/CopyIcon';
-import { SpinnerIcon } from './icons/SpinnerIcon';
 
 
 interface PlayerPageProps {
@@ -68,44 +64,39 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ streamUrl, logoUrl }) =>
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[90vh] animate-fade-in">
-        <AudioPlayer streamUrl={streamUrl} logoUrl={logoUrl} />
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <a
-                href={isShortening ? '#' : whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-full transition-all duration-300 transform ${isShortening ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-105'}`}
-                aria-disabled={isShortening}
-            >
-                <WhatsappIcon className="w-5 h-5"/>
-                <span className="font-medium">WhatsApp</span>
-            </a>
-            <a
-                href={isShortening ? '#' : telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                 className={`flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-full transition-all duration-300 transform ${isShortening ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-105'}`}
-                 aria-disabled={isShortening}
-            >
-                <TelegramIcon className="w-5 h-5"/>
-                <span className="font-medium">Telegram</span>
-            </a>
-            <button
-                onClick={handleCopy}
-                disabled={isShortening}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-full transition-all duration-300 transform disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-105"
-            >
-                {isShortening ? (
-                    <SpinnerIcon className="w-5 h-5 animate-spin" />
-                ) : (
-                    <CopyIcon className="w-5 h-5"/>
-                )}
-                <span className="font-medium">
-                    {isShortening ? 'Generating...' : (isCopied ? 'Copied!' : 'Copy Link')}
-                </span>
-            </button>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-[90vh] px-6 animate-fade-in">
+      <AudioPlayer streamUrl={streamUrl} logoUrl={logoUrl} />
+
+      {/* Share Section */}
+      <div className="flex items-center justify-center gap-6 mt-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+        <a
+          href={isShortening ? '#' : whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`text-apple-text-secondary dark:text-dm-text-secondary hover:text-royal-blue dark:hover:text-dm-royal-blue font-medium transition-colors ${isShortening ? 'opacity-50' : ''}`}
+          aria-disabled={isShortening}
+        >
+          WhatsApp
+        </a>
+        <span className="text-apple-border dark:text-dm-gray-light">|</span>
+        <a
+          href={isShortening ? '#' : telegramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`text-apple-text-secondary dark:text-dm-text-secondary hover:text-royal-blue dark:hover:text-dm-royal-blue font-medium transition-colors ${isShortening ? 'opacity-50' : ''}`}
+          aria-disabled={isShortening}
+        >
+          Telegram
+        </a>
+        <span className="text-apple-border dark:text-dm-gray-light">|</span>
+        <button
+          onClick={handleCopy}
+          disabled={isShortening}
+          className={`text-apple-text-secondary dark:text-dm-text-secondary hover:text-royal-blue dark:hover:text-dm-royal-blue font-medium transition-colors disabled:opacity-50 ${isShortening ? 'opacity-50' : ''}`}
+        >
+          {isShortening ? 'Generating...' : (isCopied ? 'Copied' : 'Copy Link')}
+        </button>
+      </div>
     </div>
   );
 };
