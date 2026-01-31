@@ -30,3 +30,5 @@ uno.css
 *.njsproj
 *.sln
 *.sw?
+# Git worktrees
+.worktrees/
