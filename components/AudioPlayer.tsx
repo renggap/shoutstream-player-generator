@@ -238,18 +238,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   };
 
   return (
-    <div className="card-elevated">
+    <div className="card-elevated max-w-md mx-auto">
       <div className="flex flex-col items-center">
-        <div className={`relative w-32 h-32 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-2xl mb-6 transition-all duration-500 overflow-hidden ${isPlaying ? 'scale-105 shadow-lg' : 'scale-100'}`}>
+        {/* Logo/Icon Area - Enhanced */}
+        <div className={`relative w-36 h-36 flex items-center justify-center bg-apple-gray dark:bg-dm-gray rounded-3xl mb-8 transition-all duration-500 overflow-hidden shadow-inner ${isPlaying ? 'scale-105 shadow-xl' : 'scale-100'}`}>
           {logoUrl && !logoError ? (
             <img src={logoUrl} alt="Stream logo" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
           ) : (
-            <MusicNoteIcon className="w-16 h-16 text-gray-400 dark:text-gray-500"/>
+            <MusicNoteIcon className="w-16 h-16 text-apple-text-secondary dark:text-dm-text-secondary"/>
           )}
         </div>
 
-        <div className="text-center w-full mb-6 min-h-[6rem]">
-            <div className="relative w-full h-7 overflow-hidden">
+        {/* Metadata Display - Improved */}
+        <div className="text-center w-full mb-8">
+            <div className="relative w-full h-8 overflow-hidden mb-3">
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-max animate-marquee whitespace-nowrap">
                         <span className="text-xl font-bold text-graphite dark:text-white mx-4" title={metadata.songTitle}>{metadata.songTitle}</span>
@@ -257,76 +259,91 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
                     </div>
                 </div>
             </div>
-            <p className="text-sm text-apple-text-secondary font-medium mt-1">{status}</p>
 
-            {/* Stream Health Indicator */}
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <div className={`w-2 h-2 rounded-full ${
-                streamHealth === 'healthy' ? 'bg-green-500' :
-                streamHealth === 'unhealthy' ? 'bg-red-500' :
-                'bg-yellow-500'
-              } ${
-                streamHealth === 'unknown' ? 'animate-pulse' : ''
-              }`} title={`Stream status: ${streamHealth}`} />
-              <span className="text-xs text-apple-text-secondary">
-                {streamHealth === 'healthy' ? 'Connected' :
-                 streamHealth === 'unhealthy' ? 'Disconnected' :
-                 'Checking...'}
-              </span>
-            </div>
+            {/* Status & Health - Better styled */}
+            <div className="flex flex-col items-center gap-2">
+                <p className="text-sm text-apple-text-secondary dark:text-dm-text-secondary font-medium">{status}</p>
 
-            {metadata.listeners !== null && (
-                <div className="flex items-center justify-center gap-2 mt-2 text-apple-text-secondary">
-                    <UserIcon className="w-4 h-4" />
-                    <span>{metadata.listeners} Listeners</span>
+                <div className="flex items-center justify-center gap-2">
+                  <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                    streamHealth === 'healthy' ? 'bg-green-500' :
+                    streamHealth === 'unhealthy' ? 'bg-red-500' :
+                    'bg-yellow-500'
+                  } ${
+                    streamHealth === 'unknown' ? 'animate-pulse' : ''
+                  }`} title={`Stream status: ${streamHealth}`} />
+                  <span className="text-xs text-apple-text-secondary dark:text-dm-text-secondary">
+                    {streamHealth === 'healthy' ? 'Connected' :
+                     streamHealth === 'unhealthy' ? 'Disconnected' :
+                     'Checking...'}
+                  </span>
                 </div>
-            )}
+
+                {metadata.listeners !== null && (
+                    <div className="flex items-center justify-center gap-1.5 mt-1 text-apple-text-secondary dark:text-dm-text-secondary">
+                        <UserIcon className="w-3.5 h-3.5" />
+                        <span className="text-xs">{metadata.listeners} listening</span>
+                    </div>
+                )}
+            </div>
         </div>
 
         <audio ref={audioRef} src={effectiveStreamUrl} preload="none" crossOrigin="anonymous"/>
 
-        <div className="flex items-center justify-center w-full mb-4 gap-3">
-            <button
-                onClick={togglePlayPause}
-                className="w-20 h-20 flex items-center justify-center bg-royal-blue rounded-full text-white shadow-lg hover:scale-110 transform transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-royal-blue/50"
-                aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-                {isPlaying ? <StopIcon className="w-8 h-8" /> : <PlayIcon className="w-10 h-10" />}
-            </button>
-
-            {/* Retry button for failed streams */}
-            {streamHealth === 'unhealthy' && (
+        {/* Controls - Enhanced layout */}
+        <div className="flex flex-col items-center w-full gap-6">
+            {/* Play Button - Improved */}
+            <div className="flex items-center justify-center gap-4">
                 <button
-                    onClick={() => {
-                        setStreamHealth('unknown');
-                        setStatus('Retrying connection...');
-                        retryCountRef.current = 0;
-                        if (audioRef.current) {
-                            audioRef.current.load();
-                        }
-                    }}
-                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
-                    aria-label="Retry connection"
+                    onClick={togglePlayPause}
+                    className="w-20 h-20 flex items-center justify-center bg-royal-blue dark:bg-dm-royal-blue rounded-full text-white shadow-lg hover:scale-110 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-royal-blue/50"
+                    aria-label={isPlaying ? 'Stop' : 'Play'}
                 >
-                    Retry
+                    {isPlaying ? <StopIcon className="w-8 h-8" /> : <PlayIcon className="w-9 h-9 ml-1" />}
                 </button>
-            )}
-        </div>
 
-        <div className="flex items-center gap-3 w-full">
-            <button onClick={toggleMute} className="text-apple-text-secondary hover:text-graphite dark:hover:text-white transition-colors" aria-label={isMuted ? 'Unmute' : 'Mute'}>
-                {isMuted || volume === 0 ? <VolumeOffIcon className="w-6 h-6" /> : <VolumeUpIcon className="w-6 h-6" />}
-            </button>
-            <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="w-full h-2 bg-apple-gray-dark dark:bg-dm-gray-light rounded-lg appearance-none cursor-pointer accent-royal-blue"
-                aria-label="Volume slider"
-            />
+                {/* Retry button for failed streams */}
+                {streamHealth === 'unhealthy' && (
+                    <button
+                        onClick={() => {
+                            setStreamHealth('unknown');
+                            setStatus('Retrying connection...');
+                            retryCountRef.current = 0;
+                            if (audioRef.current) {
+                                audioRef.current.load();
+                            }
+                        }}
+                        className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-sm font-medium transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-500/50 shadow-md"
+                        aria-label="Retry connection"
+                    >
+                        Retry
+                    </button>
+                )}
+            </div>
+
+            {/* Volume Control - Enhanced */}
+            <div className="flex items-center gap-3 w-full px-4">
+                <button
+                    onClick={toggleMute}
+                    className="text-apple-text-secondary dark:text-dm-text-secondary hover:text-graphite dark:hover:text-white transition-colors p-1 rounded-full hover:bg-apple-gray dark:hover:bg-dm-gray"
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                >
+                    {isMuted || volume === 0 ? <VolumeOffIcon className="w-5 h-5" /> : <VolumeUpIcon className="w-5 h-5" />}
+                </button>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    className="flex-1 h-2 bg-apple-gray-dark dark:bg-dm-gray-light rounded-full appearance-none cursor-pointer accent-royal-blue hover:accent-royal-blue-light dark:hover:accent-dm-royal-blue transition-all"
+                    aria-label="Volume slider"
+                    style={{
+                        background: `linear-gradient(to right, rgb(0 122 255) 0%, rgb(0 122 255) ${(isMuted ? 0 : volume) * 100}%, rgb(229 229 234) ${(isMuted ? 0 : volume) * 100}%, rgb(229 229 234) 100%)`
+                    } as any}
+                />
+            </div>
         </div>
       </div>
     </div>

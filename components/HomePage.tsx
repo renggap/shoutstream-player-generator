@@ -76,73 +76,85 @@ export const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center px-6 animate-fade-in">
-      <div className="w-full max-w-2xl">
-        {/* Header Section */}
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center mb-6">
-            <MusicNoteIcon className="w-16 h-16 text-royal-blue dark:text-dm-royal-blue" />
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center px-6 py-12">
+      <div className="w-full max-w-xl">
+        {/* Header Section - More refined spacing */}
+        <div className="text-center mb-20">
+          {/* Icon with subtle background */}
+          <div className="flex items-center justify-center mb-8">
+            <div className="w-20 h-20 rounded-2xl bg-apple-gray dark:bg-dm-gray flex items-center justify-center">
+              <MusicNoteIcon className="w-10 h-10 text-royal-blue dark:text-dm-royal-blue" />
+            </div>
           </div>
-          <h1 className="text-h1 mb-4">
+
+          {/* Title with better typography */}
+          <h1 className="text-[3rem] leading-none font-semibold tracking-tight text-graphite dark:text-white mb-4">
             ShoutStream
           </h1>
-          <p className="text-body text-apple-text-secondary dark:text-dm-text-secondary max-w-md mx-auto">
+
+          {/* Description with improved spacing */}
+          <p className="text-lg text-apple-text-secondary dark:text-dm-text-secondary max-w-md mx-auto leading-relaxed">
             Generate beautiful, shareable audio players for any Shoutcast or Icecast stream.
           </p>
         </div>
 
-        {/* Form Section */}
-        <form onSubmit={handleSubmit} className="space-y-8 animate-slide-up">
-          {/* Stream URL Input - Apple Underlined Style */}
-          <div>
+        {/* Form Section - Improved spacing */}
+        <form onSubmit={handleSubmit} className="space-y-10">
+          {/* Stream URL Input */}
+          <div className="group">
             <input
               type="text"
               value={streamUrl}
               onChange={(e) => setStreamUrl(e.target.value)}
               placeholder="Stream URL"
-              className="input-apple text-h1"
+              className="input-apple text-2xl dark:text-white placeholder:text-apple-border dark:placeholder:text-dm-gray-light transition-all duration-200"
               autoComplete="off"
               required
             />
           </div>
 
           {/* Logo URL Input */}
-          <div>
+          <div className="group">
             <input
               type="text"
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
               placeholder="Logo URL (optional)"
-              className="input-apple text-body"
+              className="input-apple text-base dark:text-white placeholder:text-apple-border dark:placeholder:text-dm-gray-light transition-all duration-200"
               autoComplete="off"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <p className="text-red-500 text-center text-sm">{error}</p>
+            <div className="flex justify-center">
+              <p className="text-red-500 text-sm font-medium px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg">{error}</p>
+            </div>
           )}
 
-          {/* Generate Button */}
-          <div className="flex justify-center pt-4">
+          {/* Generate Button - Enhanced */}
+          <div className="flex justify-center pt-6">
             <button
               type="submit"
-              className="btn-primary animate-scale-subtle-hover"
+              className="btn-primary text-base px-10 py-4 flex items-center gap-3 hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg hover:shadow-xl"
             >
-              <PlayIcon className="w-5 h-5 mr-2" />
+              <PlayIcon className="w-5 h-5" />
               Generate Player
             </button>
           </div>
         </form>
 
-        {/* Example Section */}
-        <div className="mt-16 text-center animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <p className="text-muted">
-            Example:{' '}
-            <code className="px-2 py-1 bg-apple-gray dark:bg-dm-gray text-apple-text-secondary dark:text-dm-text-secondary rounded text-xs">
-              https://alfaruq1.ssl.radioislam.my.id/
-            </code>
-          </p>
+        {/* Example Section - Improved styling */}
+        <div className="mt-20 text-center">
+          <p className="text-muted mb-2">Try it with an example stream:</p>
+          <button
+            type="button"
+            onClick={() => setStreamUrl('https://alfaruq1.ssl.radioislam.my.id/')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-apple-gray dark:bg-dm-gray hover:bg-apple-gray-dark dark:hover:bg-dm-gray-light text-apple-text-secondary dark:text-dm-text-secondary rounded-lg text-sm transition-all duration-200 hover:scale-105"
+          >
+            <MusicNoteIcon className="w-4 h-4" />
+            <span>Load example stream</span>
+          </button>
         </div>
       </div>
     </div>
