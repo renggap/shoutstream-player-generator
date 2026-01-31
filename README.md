@@ -81,7 +81,7 @@ https://example.com/logo.png
 ### Architecture
 - **Frontend:** React 19 + TypeScript
 - **Build Tool:** Vite 6
-- **Styling:** Tailwind CSS
+- **Styling:** UnoCSS
 - **Icons:** Custom SVG components
 
 ### Security Features

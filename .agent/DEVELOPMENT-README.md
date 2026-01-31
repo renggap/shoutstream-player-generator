@@ -88,6 +88,24 @@ components/
 └── icons/              # SVG icon components
 ```
 
+### Utilities
+
+The project includes reusable utility functions in `utils/`:
+
+- **`utils/metadata.ts`** - Stream metadata fetching
+  - Supports multiple streaming server types (Icecast, Shoutcast v1/v2)
+  - Automatic endpoint fallback with timeout handling
+  - See [`.agent/sops/integrations/metadata-endpoints.md`](.agent/sops/integrations/metadata-endpoints.md) for details
+
+- **`utils/url.ts`** - URL validation and utilities
+  - Stream URL validation with protocol checking
+  - Base64 encoding/decoding for player URLs
+  - CORS proxy URL generation
+
+- **`utils/error-handler.ts`** - Error handling utilities
+  - User-friendly error messages
+  - Error classification and logging
+
 ## Getting Help
 
 For Navigator-specific help:
