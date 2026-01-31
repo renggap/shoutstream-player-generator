@@ -67,6 +67,30 @@ describe('API Routes', () => {
       expect(stored?.streamUrl).toBe('http://test.com:8030/');
       expect(stored?.logoUrl).toBe('https://test.com/logo.png');
     });
+
+    it('should return 400 when streamUrl is missing', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/create-slug',
+        payload: {}
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body)).toEqual({ error: 'streamUrl is required' });
+    });
+
+    it('should return 400 for invalid streamUrl format', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/create-slug',
+        payload: {
+          streamUrl: 'not-a-valid-url'
+        }
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body)).toEqual({ error: 'Invalid streamUrl format' });
+    });
   });
 
   describe('GET /api/proxy', () => {
@@ -83,6 +107,15 @@ describe('API Routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/proxy?url=file:///etc/passwd'
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 when proxy url parameter is missing', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/proxy'
       });
 
       expect(response.statusCode).toBe(400);

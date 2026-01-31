@@ -18,6 +18,21 @@ export const createSlugRoute: FastifyPluginAsync<CreateSlugOptions> = async (fas
       return reply.status(400).send({ error: 'streamUrl is required' });
     }
 
+    // Validate URL formats
+    try {
+      new URL(body.streamUrl);
+    } catch {
+      return reply.status(400).send({ error: 'Invalid streamUrl format' });
+    }
+
+    if (body.logoUrl) {
+      try {
+        new URL(body.logoUrl);
+      } catch {
+        return reply.status(400).send({ error: 'Invalid logoUrl format' });
+      }
+    }
+
     // Generate unique slug
     let slug: string;
     let attempts = 0;
@@ -37,7 +52,12 @@ export const createSlugRoute: FastifyPluginAsync<CreateSlugOptions> = async (fas
       accessCount: 0
     };
 
-    await storage.set(slug, config);
+    try {
+      await storage.set(slug, config);
+    } catch (error) {
+      fastify.log.error({ error, slug }, 'Failed to save slug');
+      return reply.status(500).send({ error: 'Failed to save slug' });
+    }
 
     return {
       slug,
