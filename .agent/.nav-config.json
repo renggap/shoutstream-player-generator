@@ -1,0 +1,14 @@
+{
+  "version": "5.5.0",
+  "project_name": "ShoutStream Player Generator",
+  "tech_stack": "React 19, TypeScript, Vite 6, UnoCSS",
+  "project_management": "none",
+  "task_prefix": "TASK",
+  "team_chat": "none",
+  "auto_load_navigator": true,
+  "compact_strategy": "conservative",
+  "auto_update": {
+    "enabled": true,
+    "check_interval_hours": 1
+  }
+}

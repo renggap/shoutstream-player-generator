@@ -5,6 +5,7 @@ import { VolumeUpIcon } from './icons/VolumeUpIcon';
 import { VolumeOffIcon } from './icons/VolumeOffIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { UserIcon } from './icons/UserIcon';
+import { fetchStreamMetadata } from '../utils/metadata';
 
 interface AudioPlayerProps {
   streamUrl: string;
@@ -23,22 +24,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   const [retryCount, setRetryCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Enhanced CORS proxy handling with fallbacks
+  // Enhanced CORS proxy handling with local proxy
   const effectiveStreamUrl = useMemo(() => {
     const isInsecureStream = streamUrl.startsWith('http:') && window.location.protocol === 'https:';
 
     if (isInsecureStream) {
-      console.log('Insecure stream detected. Using proxy with fallbacks.');
-
-      // Try multiple proxy services as fallbacks
-      const proxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(streamUrl)}`,
-        `https://cors-anywhere.herokuapp.com/${streamUrl}`,
-        `https://corsproxy.io/?${encodeURIComponent(streamUrl)}`
-      ];
-
-      // Return the first proxy URL - in a real implementation, you might want to test them
-      return proxies[0];
+      console.log('Insecure stream detected. Using local CORS proxy.');
+      return `/api/proxy?url=${encodeURIComponent(streamUrl)}`;
     }
 
     return streamUrl;
@@ -106,20 +98,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   useEffect(() => {
     const fetchMetadata = async () => {
         try {
-            const url = new URL(streamUrl);
-            const statsUrl = `${url.protocol}//${url.hostname}${url.port ? ':'+url.port:''}/stats?sid=1&json=1`;
-            
-            const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(statsUrl)}`);
-
-            if (!response.ok) {
-                throw new Error(`Network response was not ok, status: ${response.status}`);
-            }
-            const data = await response.json();
-            
-            setMetadata({
-                songTitle: data.songtitle || 'Unknown Song',
-                listeners: data.currentlisteners || '0',
-            });
+            const data = await fetchStreamMetadata(streamUrl);
+            setMetadata(data);
         } catch (error) {
             console.error("Failed to fetch stream metadata:", error);
             setMetadata(prev => ({ ...prev, songTitle: 'Metadata Unavailable' }));
@@ -127,7 +107,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
     };
 
     fetchMetadata();
-    const intervalId = setInterval(fetchMetadata, 10000); 
+    const intervalId = setInterval(fetchMetadata, 10000);
 
     return () => clearInterval(intervalId);
   }, [streamUrl]);
