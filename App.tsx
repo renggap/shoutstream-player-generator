@@ -58,7 +58,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-black text-graphite dark:text-white font-sans transition-colors duration-300">
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       </div>
