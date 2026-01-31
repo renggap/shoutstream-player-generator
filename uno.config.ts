@@ -31,16 +31,23 @@ export default defineConfig({
       sans: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif',
     },
   },
+  keyframes: {
+    'un-fade-in': {
+      '0%': { opacity: '0' },
+      '100%': { opacity: '1' },
+    },
+    'un-slide-up': {
+      '0%': { transform: 'translateY(8px)', opacity: '0' },
+      '100%': { transform: 'translateY(0)', opacity: '1' },
+    },
+  },
   rules: [
     // Subtle animations
     ['animate-fade-in', {
-      'animation': 'fadeIn 0.3s ease-out forwards',
-      'opacity': '0',
+      'animation': 'un-fade-in 0.3s ease-out forwards',
     }],
     ['animate-slide-up', {
-      'animation': 'slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
-      'transform': 'translateY(8px)',
-      'opacity': '0',
+      'animation': 'un-slide-up 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
     }],
     ['animate-scale-subtle', {
       'transition': 'transform 0.2s ease-out',
@@ -49,16 +56,6 @@ export default defineConfig({
       'transform': 'scale(1.02)',
     }],
   ],
-  keyframes: {
-    fadeIn: {
-      '0%': { opacity: '0' },
-      '100%': { opacity: '1' },
-    },
-    slideUp: {
-      '0%': { transform: 'translateY(8px)', opacity: '0' },
-      '100%': { transform: 'translateY(0)', opacity: '1' },
-    },
-  },
   shortcuts: {
     // Card styles
     'card': 'bg-white dark:bg-dm-gray rounded-2xl shadow-sm border border-apple-gray-dark dark:border-dm-gray-light',
