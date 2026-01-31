@@ -11,7 +11,7 @@ const nanoidLowercase = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 7
 export const createSlugRoute: FastifyPluginAsync<CreateSlugOptions> = async (fastify, options) => {
   const { storage } = options;
 
-  fastify.post('/create-slug', async (request, reply) => {
+  fastify.post('/api/create-slug', async (request, reply) => {
     const body = request.body as { streamUrl: string; logoUrl?: string };
 
     if (!body.streamUrl) {

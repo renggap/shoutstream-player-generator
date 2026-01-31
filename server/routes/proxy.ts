@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 
 export const proxyRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/proxy', async (request, reply) => {
+  fastify.get('/api/proxy', async (request, reply) => {
     const { url } = request.query as { url?: string };
 
     if (!url) {

@@ -5,6 +5,5 @@ export default {
   extends: [vikeReact],
   passToClient: ['pageProps'],
   clientRouting: false,
-  // Use vike-react's built-in HTML renderer
-  // No need for custom +onRenderHtml when using vike-react
+  disableHashRouter: true,
 } satisfies Config

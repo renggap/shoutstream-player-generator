@@ -1,8 +1,6 @@
 import React from 'react';
 
-export { Page };
-
-function Page() {
+export default function Page() {
   return (
     <div>
       <h1>ShoutStream Player Generator</h1>

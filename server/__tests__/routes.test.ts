@@ -20,8 +20,8 @@ describe('API Routes', () => {
     const testFile = path.join(tempDir, 'test-slugs.json');
     storage = new SlugStorage(testFile);
 
-    await app.register(createSlugRoute, { storage, prefix: '/api' });
-    await app.register(proxyRoute, { prefix: '/api' });
+    await app.register(createSlugRoute, { storage });
+    await app.register(proxyRoute);
     await app.ready();
   });
 
