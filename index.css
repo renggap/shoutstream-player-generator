@@ -1,7 +1,5 @@
 /* ShoutStream Player Generator - Minimalist Global Styles */
 
-@import 'uno.css';
-
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
   -webkit-font-smoothing: antialiased;
