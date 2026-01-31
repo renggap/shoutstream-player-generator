@@ -32,3 +32,6 @@ uno.css
 *.sw?
 # Git worktrees
 .worktrees/
+
+# Slug storage data
+data/
