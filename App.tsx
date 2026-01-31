@@ -3,15 +3,11 @@ import { HomePage } from './components/HomePage';
 import { PlayerPage } from './components/PlayerPage';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useTheme } from './hooks/useTheme';
+import { encodePlayerData, decodePlayerData, type PlayerData } from './utils/url';
 
 enum Route {
   Home,
   Player,
-}
-
-interface PlayerData {
-  streamUrl: string;
-  logoUrl?: string;
 }
 
 const App: React.FC = () => {
@@ -25,22 +21,7 @@ const App: React.FC = () => {
       if (hash.startsWith('#/player/')) {
         try {
           const encodedData = hash.substring(9);
-          const decodedJson = atob(encodedData);
-          
-          let data: PlayerData;
-          try {
-            // New format: JSON object
-            const parsedData = JSON.parse(decodedJson);
-            if (typeof parsedData === 'object' && parsedData !== null && 'streamUrl' in parsedData) {
-               data = parsedData;
-            } else {
-              throw new Error("Invalid player data structure");
-            }
-          } catch (e) {
-            // Fallback for old format: raw URL string
-            console.warn("Falling back to legacy URL format.");
-            data = { streamUrl: decodedJson };
-          }
+          const data = decodePlayerData(encodedData);
 
           if (data.streamUrl && data.streamUrl.startsWith('http')) {
             setPlayerData(data);
@@ -72,7 +53,7 @@ const App: React.FC = () => {
     if (logoUrl) {
         data.logoUrl = logoUrl;
     }
-    const encodedData = btoa(JSON.stringify(data));
+    const encodedData = encodePlayerData(data);
     window.location.hash = `#/player/${encodedData}`;
   };
 
