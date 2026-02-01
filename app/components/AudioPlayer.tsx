@@ -47,18 +47,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
     return url;
   }, [urlVariants, currentUrlIndex]);
 
-  // Initialize Howler instance
-  useEffect(() => {
+  // Initialize Howler instance - removed from useEffect
+  // We'll initialize it lazily when user clicks Play
+  const initializeAudio = useCallback(() => {
     if (soundRef.current) {
-      soundRef.current.unload();
+      // Already initialized
+      return;
     }
+
+    console.log('Initializing Howler with URL:', effectiveStreamUrl);
 
     const sound = new Howl({
       src: [effectiveStreamUrl],
-      html5: true, // Use HTML5 Audio for better streaming support
+      html5: true,
       format: ['mp3', 'aac', 'ogg'],
-      volume: volume,
+      volume: isMuted ? 0 : volume,
+      preload: false, // Don't preload to avoid autoplay issues
       onplay: () => {
+        console.log('Howler onplay fired');
         setIsPlaying(true);
         setStatus('Playing');
         setStreamHealth('healthy');
@@ -66,14 +72,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         urlVariantIndexRef.current = 0;
       },
       onpause: () => {
+        console.log('Howler onpause fired');
         setIsPlaying(false);
         setStatus('Paused');
       },
       onend: () => {
+        console.log('Howler onend fired');
         setIsPlaying(false);
         setStatus('Ended');
       },
       onstop: () => {
+        console.log('Howler onstop fired');
         setIsPlaying(false);
         setStatus('Stopped');
       },
@@ -85,14 +94,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
         console.error('Howler play error:', error);
         handleStreamError();
       },
+      onload: () => {
+        console.log('Howler loaded successfully');
+      },
     });
 
     soundRef.current = sound;
-
-    return () => {
-      sound.unload();
-    };
-  }, [effectiveStreamUrl]);
+  }, [effectiveStreamUrl, isMuted, volume]);
 
   const handleStreamError = useCallback(() => {
     setStreamHealth('unhealthy');
@@ -153,29 +161,50 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   }, [urlVariants, volume, isMuted]);
 
   const togglePlayPause = useCallback(async () => {
-    if (!soundRef.current) return;
-
     if (isPlaying) {
-      soundRef.current.pause();
-      setStatus('Paused');
+      if (soundRef.current) {
+        soundRef.current.pause();
+        setStatus('Paused');
+      }
     } else {
+      // Initialize audio on first play (user gesture)
+      if (!soundRef.current) {
+        console.log('First play - initializing audio');
+        initializeAudio();
+        // Give Howler a moment to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       if (streamHealth === 'unhealthy') {
         setStreamHealth('unknown');
         setStatus('Retrying connection...');
       }
 
       try {
-        soundRef.current.play();
+        if (soundRef.current) {
+          console.log('Playing audio...');
+          soundRef.current.play();
+        }
       } catch (err) {
         console.error("Play failed:", err);
         setStatus('Failed to play stream. Click Retry.');
         setStreamHealth('unhealthy');
       }
     }
-  }, [isPlaying, streamHealth]);
+  }, [isPlaying, streamHealth, initializeAudio]);
 
   useEffect(() => {
     setLogoError(false);
+
+    // Cleanup on unmount - properly dispose audio resources
+    return () => {
+      console.log('AudioPlayer unmounting - cleaning up resources');
+      if (soundRef.current) {
+        console.log('Unloading Howler instance');
+        soundRef.current.unload();
+        soundRef.current = null;
+      }
+    };
   }, [logoUrl]);
 
   // Fetch metadata periodically
@@ -230,21 +259,25 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
   }, [isMuted, volume, lastVolume]);
 
   const retryConnection = useCallback(() => {
+    console.log('Retry connection requested');
+
+    // Clean up existing audio instance
+    if (soundRef.current) {
+      console.log('Unloading existing Howler instance');
+      soundRef.current.unload();
+      soundRef.current = null;
+    }
+
+    // Reset state
     setStreamHealth('unknown');
     setStatus('Retrying connection...');
     retryCountRef.current = 0;
     urlVariantIndexRef.current = 0;
+    setIsPlaying(false);
 
-    if (soundRef.current) {
-      soundRef.current.unload();
-      soundRef.current = new Howl({
-        src: [effectiveStreamUrl],
-        html5: true,
-        format: ['mp3', 'aac', 'ogg'],
-        volume: isMuted ? 0 : volume,
-      });
-    }
-  }, [effectiveStreamUrl, isMuted, volume]);
+    // Note: Don't initialize immediately - will initialize on next play
+    console.log('Connection reset - will initialize on next play');
+  }, [effectiveStreamUrl]);
 
   return (
     <div className="card-elevated max-w-md mx-auto">
