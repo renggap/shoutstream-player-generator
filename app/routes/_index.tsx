@@ -3,6 +3,8 @@ import { Form, redirect, useActionData } from "react-router";
 import { nanoid } from "nanoid";
 import { saveSlug } from "../services/slug-storage.server";
 import { MusicNoteIcon } from "../components/icons/MusicNoteIcon";
+import { ThemeToggle } from "../components/ThemeToggle";
+import { useTheme } from "../hooks/useTheme";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -56,9 +58,11 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Index() {
   const actionData = useActionData<ActionData>();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
