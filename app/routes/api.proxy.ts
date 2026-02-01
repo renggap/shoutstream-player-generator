@@ -36,8 +36,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const contentType = response.headers.get("Content-Type") || "";
 
-    // For JSON responses (metadata endpoints), buffer and return directly
-    if (contentType.includes("application/json")) {
+    // Check if this is an audio stream (binary data that should be streamed)
+    const isAudioStream = contentType.startsWith("audio/") || contentType.includes("mpeg");
+
+    // For non-audio responses (JSON, XML, text metadata), buffer and return directly
+    if (!isAudioStream) {
       const data = await response.arrayBuffer();
       return new Response(data, {
         headers: {

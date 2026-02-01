@@ -189,7 +189,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
     };
 
     fetchMetadata();
-    const intervalId = setInterval(fetchMetadata, 10000);
+    const intervalId = setInterval(fetchMetadata, 5000); // Update every 5 seconds
 
     return () => clearInterval(intervalId);
   }, [streamUrl]);
@@ -283,7 +283,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
             {metadata.listeners !== null && (
               <div className="flex items-center justify-center gap-1.5 mt-1 text-apple-text-secondary dark:text-dm-text-secondary">
                 <UserIcon className="w-3.5 h-3.5" />
-                <span className="text-xs">{metadata.listeners} listening</span>
+                <span className="text-xs">{metadata.listeners !== null ? `${metadata.listeners} total listeners` : ''}</span>
               </div>
             )}
           </div>
