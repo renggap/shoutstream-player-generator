@@ -55,6 +55,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
       return;
     }
 
+    console.log('Creating AudioContext after user gesture...');
+
+    // Create AudioContext after user gesture (this fixes the autoplay block)
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    const audioContext = new AudioContext();
+    audioContext.resume().then(() => {
+      console.log('AudioContext resumed successfully');
+    }).catch((err) => {
+      console.error('Failed to resume AudioContext:', err);
+    });
+
     console.log('Initializing Howler with URL:', effectiveStreamUrl);
 
     const sound = new Howl({
@@ -63,6 +74,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
       format: ['mp3', 'aac', 'ogg'],
       volume: isMuted ? 0 : volume,
       preload: false, // Don't preload to avoid autoplay issues
+      context: audioContext, // Pass our AudioContext (created after gesture)
       onplay: () => {
         console.log('Howler onplay fired');
         setIsPlaying(true);
@@ -100,6 +112,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
     });
 
     soundRef.current = sound;
+    console.log('Howler instance created');
   }, [effectiveStreamUrl, isMuted, volume]);
 
   const handleStreamError = useCallback(() => {
