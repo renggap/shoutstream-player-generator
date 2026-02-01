@@ -1,10 +1,10 @@
-import React from 'react';
+import { HomePage } from '../components/HomePage';
 
 export default function Page() {
-  return (
-    <div>
-      <h1>ShoutStream Player Generator</h1>
-      <p>Vike SSR migration in progress...</p>
-    </div>
-  );
+  return <HomePage />;
 }
+
+export const data = {
+  title: 'ShoutStream Player Generator',
+  description: 'Generate shareable audio players for Shoutcast/Icecast streams'
+};
