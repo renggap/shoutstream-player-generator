@@ -15,7 +15,6 @@ body {
 }
 
 /* Dark mode toggle support */
-html.dark,
-html.dark body {
+html.dark {
   color-scheme: dark;
 }
