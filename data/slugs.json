@@ -1,0 +1,86 @@
+{
+  "3uxsfdx": {
+    "streamUrl": "https://example.com/stream",
+    "logoUrl": "https://example.com/logo.png",
+    "createdAt": "2026-02-01T01:58:01.377Z",
+    "accessCount": 0
+  },
+  "e64vz55": {
+    "streamUrl": "https://example.com/stream",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T02:01:12.488Z",
+    "accessCount": 0
+  },
+  "vp1f82r": {
+    "streamUrl": "https://alfaruq1.ssl.radioislam.my.id/",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T03:06:25.302Z",
+    "accessCount": 0
+  },
+  "ndn2xt4": {
+    "streamUrl": "https://dioplayer.zenfm.com:8000/stream",
+    "logoUrl": "https://example.com/logo.png",
+    "createdAt": "2026-02-01T03:12:24.676Z",
+    "accessCount": 0
+  },
+  "7k6xdh4": {
+    "streamUrl": "https://dioplayer.zenfm.com:8000/stream",
+    "logoUrl": "https://example.com/logo.png",
+    "createdAt": "2026-02-01T03:13:02.136Z",
+    "accessCount": 0
+  },
+  "urbgyl3": {
+    "streamUrl": "http://stream.example.com:8000",
+    "logoUrl": "http://example.com/logo.png",
+    "createdAt": "2026-02-01T04:14:15.764Z",
+    "accessCount": 0
+  },
+  "ekdaq61": {
+    "streamUrl": "http://test.com/stream",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T04:16:37.343Z",
+    "accessCount": 0
+  },
+  "mvkywb0": {
+    "streamUrl": "http://test.com/stream",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T04:43:42.347Z",
+    "accessCount": 0
+  },
+  "5yhohgy": {
+    "streamUrl": "http://203.9.150.181:8030/;",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T04:45:15.115Z",
+    "accessCount": 0
+  },
+  "ww61k5l": {
+    "streamUrl": "http://203.9.150.181:8030/",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T04:48:00.290Z",
+    "accessCount": 0
+  },
+  "5e390nc": {
+    "streamUrl": "http://203.9.150.181:8030/",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T04:48:27.007Z",
+    "accessCount": 0
+  },
+  "b9130cz": {
+    "streamUrl": "http://203.9.150.181:8030/",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T04:49:35.936Z",
+    "accessCount": 0
+  },
+  "blbiwcs": {
+    "streamUrl": "http://203.9.150.181:8030/",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T05:01:33.817Z",
+    "accessCount": 0
+  },
+  "cwk7et5": {
+    "streamUrl": "http://203.9.150.181:8030/",
+    "logoUrl": "",
+    "createdAt": "2026-02-01T05:04:18.235Z",
+    "accessCount": 0
+  }
+}

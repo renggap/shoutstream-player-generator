@@ -1,44 +1,35 @@
 {
-  "name": "shoutstream-player-generator",
+  "name": "remix-migration",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "node server/index.js",
-    "server:dev": "tsx watch server/index.ts",
-    "server:prod": "NODE_ENV=production node dist/server/index.js",
-    "start": "NODE_ENV=production node dist/server/index.js",
-    "test": "vitest",
-    "test:ui": "vitest --ui"
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
-    "@fastify/static": "^9.0.0",
-    "fastify-plugin": "^5.1.0",
+    "@react-router/node": "7.12.0",
+    "@react-router/serve": "7.12.0",
+    "@types/howler": "^2.2.12",
+    "howler": "^2.2.4",
+    "isbot": "^5.1.31",
     "nanoid": "^5.1.6",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-streaming": "^0.4.15",
-    "vike": "^0.4.252",
-    "vike-react": "^0.6.19"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "7.12.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/express": "^5.0.6",
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@react-router/dev": "7.12.0",
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/node": "^22",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.24",
-    "fastify": "^5.7.2",
-    "http-proxy-middleware": "^3.0.5",
-    "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.19",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "vitest": "^4.0.18"
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }

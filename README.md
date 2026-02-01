@@ -1,146 +1,87 @@
-# 🎵 ShoutStream Player Generator
+# Welcome to React Router!
 
-<div align="center">
-  <img width="800" height="300" alt="ShoutStream Player Generator" src="https://img.shields.io/badge/ShoutStream-Player%20Generator-blue?style=for-the-badge&logo=react&logoColor=white" />
-</div>
+A modern, production-ready template for building full-stack React applications using React Router.
 
-<div align="center">
-  <p><strong>Generate beautiful, shareable audio players for Shoutcast and Icecast streams</strong></p>
-</div>
-<img width="1103" height="648" alt="image" src="https://github.com/user-attachments/assets/5434f7b0-5ef8-4146-9717-85204f5e6528" />
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
 
-<img width="1051" height="720" alt="image" src="https://github.com/user-attachments/assets/cdb47a54-076f-4397-9bbb-9acd3f24cd02" />
+## Features
 
+- 🚀 Server-side rendering
+- ⚡️ Hot Module Replacement (HMR)
+- 📦 Asset bundling and optimization
+- 🔄 Data loading and mutations
+- 🔒 TypeScript by default
+- 🎉 TailwindCSS for styling
+- 📖 [React Router docs](https://reactrouter.com/)
 
-## ✨ Features
+## Getting Started
 
-- 🎶 **Stream Player Generation** - Create custom audio players for any Shoutcast/Icecast stream
-- 🎨 **Beautiful UI** - Modern, responsive design with dark/light theme support
-- 📱 **Mobile Friendly** - Optimized for all screen sizes
-- 🔗 **Easy Sharing** - Generate shareable links with URL shortening
-- 📊 **Live Metadata** - Display current song and listener count
-- 🎛️ **Audio Controls** - Full playback controls with volume management
-- 🌐 **CORS Support** - Automatic proxy handling for cross-origin streams
-- ⚡ **Fast Loading** - Optimized performance with local dependencies
+### Installation
 
-## 🚀 Quick Start
+Install the dependencies:
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
+```bash
+npm install
+```
 
-### Installation & Setup
+### Development
 
-1. **Clone and install dependencies:**
-   ```bash
-   npm install
-   ```
+Start the development server with HMR:
 
-2. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
+```bash
+npm run dev
+```
 
-3. **Open your browser:**
-   Navigate to `http://localhost:3000`
+Your application will be available at `http://localhost:5173`.
 
-### Building for Production
+## Building for Production
+
+Create a production build:
 
 ```bash
 npm run build
-npm run preview
 ```
 
-## 📖 How to Use
+## Deployment
 
-1. **Enter Stream Details:**
-   - Paste your Shoutcast/Icecast stream URL
-   - Optionally add a logo URL for branding
+### Docker Deployment
 
-2. **Generate Player:**
-   - Click "Generate" to create your custom player
-   - The app will create a shareable URL with your stream
-
-3. **Share Your Player:**
-   - Use the generated link to share your stream anywhere
-   - Includes WhatsApp and Telegram sharing options
-
-### Example Usage
+To build and run using Docker:
 
 ```bash
-# Stream URL format
-http://your-stream-server:8000/
+docker build -t my-app .
 
-# With logo
-http://your-stream-server:8000/
-https://example.com/logo.png
+# Run the container
+docker run -p 3000:3000 my-app
 ```
 
-## 🔧 Technical Details
+The containerized application can be deployed to any platform that supports Docker, including:
 
-### Architecture
-- **Frontend:** React 19 + TypeScript
-- **Build Tool:** Vite 6
-- **Styling:** UnoCSS
-- **Icons:** Custom SVG components
+- AWS ECS
+- Google Cloud Run
+- Azure Container Apps
+- Digital Ocean App Platform
+- Fly.io
+- Railway
 
-### Security Features
-- ✅ **No External CDN Dependencies** - All React components bundled locally
-- ✅ **CORS Handling** - Automatic proxy for cross-origin streams
-- ✅ **Input Validation** - Secure URL validation and sanitization
+### DIY Deployment
 
-### Recent Updates
-- 🔒 **Security Enhancement** - Removed external CDN dependencies for improved security
-- ⚡ **Performance** - Faster loading with bundled dependencies
-- 🛠️ **Build Optimization** - Enhanced Vite configuration for production builds
+If you're familiar with deploying Node applications, the built-in app server is production-ready.
 
-## 🛠️ Development
+Make sure to deploy the output of `npm run build`
 
-### Project Structure
 ```
-├── components/          # React components
-│   ├── AudioPlayer.tsx # Main audio player component
-│   ├── HomePage.tsx    # Landing page
-│   └── icons/          # SVG icon components
-├── hooks/              # Custom React hooks
-├── public/             # Static assets
-└── src/                # Source files
+├── package.json
+├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
+├── build/
+│   ├── client/    # Static assets
+│   └── server/    # Server-side code
 ```
 
-### Available Scripts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
+## Styling
 
-## 🌟 Example Streams
-
-Try these example streams to test the player:
-
-- `https://alfaruq1.ssl.radioislam.my.id/` - Islamic Radio Stream
-- `http://stream.example.com:8000/` - Generic Shoutcast format
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🆘 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](../../issues) page
-2. Create a new issue with detailed information
-3. Include your stream URL and browser information
+This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
 
 ---
 
-<div align="center">
-  <p>Made with ❤️ for the streaming community</p>
-</div>
+Built with ❤️ using React Router.
