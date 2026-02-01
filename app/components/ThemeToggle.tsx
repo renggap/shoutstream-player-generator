@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { SunIcon } from './icons/SunIcon';
 import { MoonIcon } from './icons/MoonIcon';

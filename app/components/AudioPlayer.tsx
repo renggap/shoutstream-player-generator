@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Howl, Howler } from 'howler';
 import { PlayIcon } from './icons/PlayIcon';
