@@ -3,7 +3,6 @@ import { useLoaderData } from "react-router";
 import { getSlug, incrementAccessCount, type SlugConfig } from "../services/slug-storage.server";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { useTheme } from "../hooks/useTheme";
 
 export function meta({ params }: Route.MetaArgs) {
   return [
@@ -37,12 +36,11 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export default function PlayerRoute() {
-  const { theme, toggleTheme } = useTheme();
   const data = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 transition-colors">
-      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+      <ThemeToggle />
       <div className="container mx-auto px-4 py-8">
         <AudioPlayer streamUrl={data.streamUrl} logoUrl={data.logoUrl} />
       </div>
