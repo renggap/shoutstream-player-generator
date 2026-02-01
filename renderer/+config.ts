@@ -5,5 +5,4 @@ export default {
   extends: [vikeReact],
   passToClient: ['pageProps'],
   clientRouting: false,
-  disableHashRouter: true,
 } satisfies Config
