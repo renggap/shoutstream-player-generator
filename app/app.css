@@ -13,3 +13,9 @@ body {
     color-scheme: dark;
   }
 }
+
+/* Dark mode toggle support */
+html.dark,
+html.dark body {
+  color-scheme: dark;
+}
