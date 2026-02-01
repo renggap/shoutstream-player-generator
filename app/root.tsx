@@ -11,6 +11,9 @@ import type { Route } from "./+types/root";
 import { ThemeProvider } from "./components/theme-provider";
 import "./app.css";
 
+// Export action for POST requests to root
+export { action } from "./routes/_index";
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {

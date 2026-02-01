@@ -1,7 +1,6 @@
 import type { Route } from "./+types/api.proxy";
-import { LoaderFunctionArgs } from "react-router";
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const streamUrl = url.searchParams.get("url");
 
@@ -59,7 +58,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 // Handle OPTIONS requests for CORS preflight
-export async function action({ request }: LoaderFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: {

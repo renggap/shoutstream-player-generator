@@ -1,5 +1,5 @@
 import type { Route } from "./+types/player.$slug";
-import { LoaderFunctionArgs, json, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { getSlug, incrementAccessCount, type SlugConfig } from "../services/slug-storage.server";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -12,7 +12,7 @@ export function meta({ params }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: Route.LoaderArgs) {
   const { slug } = params;
 
   if (!slug) {
@@ -30,7 +30,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     console.error(`Failed to increment access count for slug ${slug}:`, error);
   });
 
-  return json({
+  return Response.json({
     streamUrl: config.streamUrl,
     logoUrl: config.logoUrl,
   });

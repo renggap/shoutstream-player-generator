@@ -32,11 +32,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
-  // Avoid hydration mismatch
-  if (!isClient) {
-    return <>{children}</>;
-  }
-
+  // Avoid hydration mismatch - always provide context
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
