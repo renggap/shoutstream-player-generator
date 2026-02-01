@@ -55,6 +55,28 @@ function parseIcecastMetadata(data: any): { songTitle: string; listeners: string
 }
 
 /**
+ * Parse metadata from Shoutcast v2 XML /stats response
+ */
+function parseShoutcastV2Xml(xml: string): { songTitle: string; listeners: string | null } {
+  try {
+    // Parse XML string to extract SONGTITLE and CURRENTLISTENERS
+    const songTitleMatch = xml.match(/<SONGTITLE>([^<]+)<\/SONGTITLE>/i);
+    const listenersMatch = xml.match(/<CURRENTLISTENERS>(\d+)<\/CURRENTLISTENERS>/i);
+    const serverTitleMatch = xml.match(/<SERVERTITLE>([^<]+)<\/SERVERTITLE>/i);
+
+    return {
+      songTitle: songTitleMatch?.[1]?.trim() || serverTitleMatch?.[1]?.trim() || 'Unknown Song',
+      listeners: listenersMatch?.[1] || null,
+    };
+  } catch {
+    return {
+      songTitle: 'Unknown Song',
+      listeners: null,
+    };
+  }
+}
+
+/**
  * Parse metadata from Shoutcast v1 /stats response
  */
 function parseShoutcastV1Metadata(data: any): { songTitle: string; listeners: string | null } {
@@ -255,7 +277,7 @@ export async function fetchStreamMetadata(streamUrl: string): Promise<{
     return icecastResult.data;
   }
 
-  // Try Shoutcast v1 endpoint
+  // Try Shoutcast v1 JSON endpoint
   const scV1Result = await tryFetchEndpoint(
     `${baseUrl}/stats?sid=1&json=1`,
     parseShoutcastV1Metadata
@@ -263,6 +285,17 @@ export async function fetchStreamMetadata(streamUrl: string): Promise<{
 
   if (scV1Result.success && scV1Result.data) {
     return scV1Result.data;
+  }
+
+  // Try Shoutcast v2 XML endpoint (before API endpoint, more common)
+  const scV2XmlResult = await tryFetchEndpoint(
+    `${baseUrl}/stats`,
+    parseShoutcastV2Xml,
+    true
+  );
+
+  if (scV2XmlResult.success && scV2XmlResult.data) {
+    return scV2XmlResult.data;
   }
 
   // Try Shoutcast v2 API endpoint

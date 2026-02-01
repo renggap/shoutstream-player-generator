@@ -34,17 +34,32 @@ export async function loader({ request }: Route.LoaderArgs) {
       });
     }
 
-    // Create a new response with CORS headers
+    const contentType = response.headers.get("Content-Type") || "";
+
+    // For JSON responses (metadata endpoints), buffer and return directly
+    if (contentType.includes("application/json")) {
+      const data = await response.arrayBuffer();
+      return new Response(data, {
+        headers: {
+          "Content-Type": contentType,
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
+
+    // For binary streams (audio), use streaming
     const { readable, writable } = new TransformStream();
 
-    // Pipe the response body
     response.body?.pipeTo(writable).catch((error) => {
       console.error("Error piping stream:", error);
     });
 
     return new Response(readable, {
       headers: {
-        "Content-Type": response.headers.get("Content-Type") || "audio/mpeg",
+        "Content-Type": contentType || "audio/mpeg",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
