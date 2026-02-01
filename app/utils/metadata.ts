@@ -3,6 +3,7 @@
  */
 
 import { isDevServerAvailable } from './dev-server';
+import type { ServerType } from '../services/slug-storage.server';
 
 /**
  * Fetch data through a CORS proxy
@@ -194,18 +195,25 @@ async function tryFetchEndpoint(
   isHtmlParser = false
 ): Promise<{ success: boolean; data?: { songTitle: string; listeners: string | null } }> {
   try {
+    console.log(`[metadata] Trying endpoint: ${url}`);
     const response = await proxyFetch(url);
 
+    console.log(`[metadata] Response status: ${response.status}, ok: ${response.ok}, contentType: ${response.headers.get('content-type')}`);
+
     if (!response.ok) {
+      console.log(`[metadata] Response not OK, returning failure`);
       return { success: false };
     }
 
     if (isHtmlParser) {
       const text = await response.text();
+      console.log(`[metadata] Got text response (${text.length} chars), preview: ${text.substring(0, 200)}`);
       if (text) {
         const parsed = parser(text);
+        console.log(`[metadata] Parsed result:`, parsed);
         return { success: true, data: parsed };
       }
+      console.log(`[metadata] Text response empty, returning failure`);
       return { success: false };
     }
 
@@ -244,16 +252,16 @@ async function tryFetchEndpoint(
 
 /**
  * Fetch stream metadata from a ShoutCast/IceCast server
- * Tries multiple endpoints in order:
- * 1. Icecast /status-json.xsl
- * 2. Shoutcast v1 /stats?sid=1&json=1
- * 3. Shoutcast v2 /api/statistics
- * 4. Shoutcast v2 / (7.html for parsing)
+ * Uses the provided server type to fetch from the correct endpoint
  *
  * @param streamUrl The URL of the stream
+ * @param serverType The type of server (shoutcast-v1, shoutcast-v2, or icecast)
  * @returns Promise with metadata including song title and listener count
  */
-export async function fetchStreamMetadata(streamUrl: string): Promise<{
+export async function fetchStreamMetadata(
+  streamUrl: string,
+  serverType: ServerType
+): Promise<{
   songTitle: string;
   listeners: string | null;
 }> {
@@ -267,60 +275,74 @@ export async function fetchStreamMetadata(streamUrl: string): Promise<{
   const url = new URL(streamUrl);
   const baseUrl = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`;
 
-  // Try Icecast endpoint first (most common)
-  const icecastResult = await tryFetchEndpoint(
-    `${baseUrl}/status-json.xsl`,
-    parseIcecastMetadata
-  );
+  console.log(`[metadata] Fetching metadata for ${serverType} server at ${baseUrl}`);
 
-  if (icecastResult.success && icecastResult.data) {
-    return icecastResult.data;
-  }
+  // Fetch metadata using the appropriate endpoint for the server type
+  switch (serverType) {
+    case 'icecast': {
+      console.log(`[metadata] Fetching from Icecast endpoint`);
+      const result = await tryFetchEndpoint(
+        `${baseUrl}/status-json.xsl`,
+        parseIcecastMetadata
+      );
+      if (result.success && result.data) {
+        return result.data;
+      }
+      break;
+    }
 
-  // Try Shoutcast v1 JSON endpoint
-  const scV1Result = await tryFetchEndpoint(
-    `${baseUrl}/stats?sid=1&json=1`,
-    parseShoutcastV1Metadata
-  );
+    case 'shoutcast-v1': {
+      console.log(`[metadata] Fetching from Shoutcast v1 endpoint`);
+      // Try JSON endpoint first
+      let result = await tryFetchEndpoint(
+        `${baseUrl}/stats?sid=1&json=1`,
+        parseShoutcastV1Metadata
+      );
+      if (result.success && result.data) {
+        return result.data;
+      }
+      // Fallback to 7.html
+      result = await tryFetchEndpoint(
+        `${baseUrl}/`,
+        parseShoutcastV2Html,
+        true
+      );
+      if (result.success && result.data) {
+        return result.data;
+      }
+      break;
+    }
 
-  if (scV1Result.success && scV1Result.data) {
-    return scV1Result.data;
-  }
+    case 'shoutcast-v2': {
+      console.log(`[metadata] Fetching from Shoutcast v2 endpoint`);
+      // Try XML /stats first (most common for v2)
+      let result = await tryFetchEndpoint(
+        `${baseUrl}/stats`,
+        parseShoutcastV2Xml,
+        true
+      );
+      if (result.success && result.data) {
+        return result.data;
+      }
+      // Try API endpoint
+      result = await tryFetchEndpoint(
+        `${baseUrl}/api/statistics`,
+        parseShoutcastV2Metadata
+      );
+      if (result.success && result.data) {
+        return result.data;
+      }
+      break;
+    }
 
-  // Try Shoutcast v2 XML endpoint (before API endpoint, more common)
-  const scV2XmlResult = await tryFetchEndpoint(
-    `${baseUrl}/stats`,
-    parseShoutcastV2Xml,
-    true
-  );
-
-  if (scV2XmlResult.success && scV2XmlResult.data) {
-    return scV2XmlResult.data;
-  }
-
-  // Try Shoutcast v2 API endpoint
-  const scV2Result = await tryFetchEndpoint(
-    `${baseUrl}/api/statistics`,
-    parseShoutcastV2Metadata
-  );
-
-  if (scV2Result.success && scV2Result.data) {
-    return scV2Result.data;
-  }
-
-  // Try Shoutcast v2 7.html page (fallback)
-  const scV2HtmlResult = await tryFetchEndpoint(
-    `${baseUrl}/`,
-    parseShoutcastV2Html,
-    true
-  );
-
-  if (scV2HtmlResult.success && scV2HtmlResult.data) {
-    return scV2HtmlResult.data;
+    default:
+      console.log(`[metadata] Unknown server type: ${serverType}`);
+      break;
   }
 
   // All endpoints failed - throw error
-  throw new Error('Unable to fetch metadata from any supported endpoint');
+  console.log('[metadata] All endpoints failed for', serverType);
+  throw new Error(`Unable to fetch metadata from ${serverType} server`);
 }
 
 // Re-export isDevServerAvailable for convenience

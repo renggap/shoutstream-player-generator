@@ -11,14 +11,10 @@ export const ThemeToggle: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="fixed top-6 right-6 p-2 rounded-full bg-apple-gray dark:bg-dm-gray hover:bg-apple-gray-dark dark:hover:bg-dm-gray-light text-apple-text-secondary dark:text-dm-text-secondary hover:text-graphite dark:hover:text-white transition-all animate-scale-subtle"
+      className="button button-ghost w-10 h-10 rounded-full border shadow-sm hover:bg-accent transition-all duration-200 hover:scale-110"
       aria-label="Toggle theme"
     >
-      {theme === 'light' ? (
-        <MoonIcon className="w-5 h-5" />
-      ) : (
-        <SunIcon className="w-5 h-5" />
-      )}
+      {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
     </button>
   );
 };

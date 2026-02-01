@@ -4,9 +4,12 @@ import path from "path";
 
 const SLUGS_FILE = path.join(process.cwd(), "data", "slugs.json");
 
+export type ServerType = 'shoutcast-v1' | 'shoutcast-v2' | 'icecast';
+
 export interface SlugConfig {
   streamUrl: string;
   logoUrl?: string;
+  serverType: ServerType;
   createdAt: string;
   accessCount: number;
 }
@@ -46,6 +49,11 @@ export async function saveSlug(
   config: Omit<SlugConfig, "createdAt" | "accessCount">
 ): Promise<void> {
   validateSlug(slug);
+
+  // Validate serverType is provided
+  if (!config.serverType || !['shoutcast-v1', 'shoutcast-v2', 'icecast'].includes(config.serverType)) {
+    throw new Error('Invalid serverType. Must be: shoutcast-v1, shoutcast-v2, or icecast');
+  }
 
   let slugs: Record<string, SlugConfig> = {};
 
