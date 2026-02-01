@@ -3,14 +3,11 @@ import { PlayIcon } from './icons/PlayIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { normalizeStreamUrl } from '../utils/stream-url';
 
-interface HomePageProps {
-  onGenerate: (streamUrl: string, logoUrl: string) => void;
-}
-
-export const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
+export const HomePage: React.FC = () => {
   const [streamUrl, setStreamUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateStreamUrl = (url: string): { isValid: boolean; error?: string; normalizedUrl?: string } => {
     if (!url.trim()) {
@@ -51,23 +48,47 @@ export const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
     const streamValidation = validateStreamUrl(streamUrl);
     if (!streamValidation.isValid) {
       setError(streamValidation.error!);
+      setIsLoading(false);
       return;
     }
 
     const logoValidation = validateLogoUrl(logoUrl);
     if (!logoValidation.isValid) {
       setError(logoValidation.error!);
+      setIsLoading(false);
       return;
     }
 
-    setError('');
-    onGenerate(streamValidation.normalizedUrl!, logoUrl.trim());
+    try {
+      const response = await fetch('/api/create-slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          streamUrl: streamValidation.normalizedUrl!,
+          logoUrl: logoUrl.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create player');
+      }
+
+      const data = await response.json();
+      window.location.href = data.url;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to create player');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -131,10 +152,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
           <div className="flex justify-center pt-6">
             <button
               type="submit"
-              className="btn-primary text-base px-10 py-4 flex items-center gap-3 hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg hover:shadow-xl"
+              disabled={isLoading}
+              className="btn-primary text-base px-10 py-4 flex items-center gap-3 hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <PlayIcon className="w-5 h-5" />
-              Generate Player
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <PlayIcon className="w-5 h-5" />
+                  Generate Player
+                </>
+              )}
             </button>
           </div>
         </form>
