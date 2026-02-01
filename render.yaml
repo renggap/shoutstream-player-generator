@@ -1,0 +1,13 @@
+services:
+  # Production service
+  - type: web
+    name: shoutstream-player
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3100

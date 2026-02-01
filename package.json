@@ -9,6 +9,7 @@
     "preview": "node server/index.js",
     "server:dev": "tsx watch server/index.ts",
     "server:prod": "NODE_ENV=production node dist/server/index.js",
+    "start": "NODE_ENV=production node dist/server/index.js",
     "test": "vitest",
     "test:ui": "vitest --ui"
   },
