@@ -3,4 +3,5 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 export default [
   index("routes/_index.tsx"),
   route("routes/player.$slug.tsx"),
+  route("routes/api.proxy.ts"),
 ] satisfies RouteConfig;
