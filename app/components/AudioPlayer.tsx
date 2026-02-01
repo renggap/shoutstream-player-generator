@@ -180,9 +180,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
 
   // Fetch metadata periodically
   useEffect(() => {
+    console.log('AudioPlayer mounted, fetching metadata for:', streamUrl);
     const fetchMetadata = async () => {
       try {
+        console.log('Fetching metadata...');
         const data = await fetchStreamMetadata(streamUrl);
+        console.log('Metadata fetched:', data);
         setMetadata(data);
       } catch (error) {
         console.error("Failed to fetch stream metadata:", error);
@@ -193,7 +196,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl }) 
     fetchMetadata();
     const intervalId = setInterval(fetchMetadata, 5000); // Update every 5 seconds
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      console.log('AudioPlayer unmounted');
+    };
   }, [streamUrl]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
