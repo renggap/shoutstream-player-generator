@@ -1,4 +1,39 @@
+# React Router
 .react-router
+
+# Build outputs
 build
+dist
+
+# Dependencies
 node_modules
+
+# Git
+.git
+.gitignore
+
+# Documentation
 README.md
+docs
+.agent
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# Test coverage
+coverage
