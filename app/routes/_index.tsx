@@ -6,8 +6,6 @@ import { saveSlug } from "../services/slug-storage.server";
 import { MusicNoteIcon } from "../components/icons/MusicNoteIcon";
 import { ThemeToggle } from "../components/ThemeToggle";
 
-const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz');
-
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "ShoutStream — Studio Audio Player Generator" },
@@ -20,7 +18,6 @@ interface ActionData {
   slug?: string;
 }
 
-// Preset streams for quick 1-click testing
 const SAMPLE_PRESETS = [
   {
     name: "Smooth Jazz",
@@ -43,6 +40,7 @@ const SAMPLE_PRESETS = [
 ];
 
 export async function action({ request }: Route.ActionArgs) {
+  const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz');
   const formData = await request.formData();
   const streamUrl = formData.get("streamUrl");
   const logoUrl = formData.get("logoUrl");

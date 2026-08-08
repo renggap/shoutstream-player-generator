@@ -36,7 +36,8 @@ async function getFsModule() {
 }
 
 function getFilePath(pathModule: any) {
-  return pathModule.join(process.cwd(), "data", "slugs.json");
+  const cwd = typeof process !== 'undefined' && typeof process.cwd === 'function' ? process.cwd() : '.';
+  return pathModule.join(cwd, "data", "slugs.json");
 }
 
 // Validate slug format to prevent path traversal

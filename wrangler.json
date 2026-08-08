@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shoutstream-player-generator",
+  "name": "shoutstream-player",
   "compatibility_date": "2026-08-08",
   "compatibility_flags": [
     "nodejs_compat"
@@ -9,7 +9,7 @@
   "kv_namespaces": [
     {
       "binding": "SLUGS_KV",
-      "id": "shoutstream-slugs-kv"
+      "id": "f24e8d269df84126b67c69a721757286"
     }
   ]
 }
