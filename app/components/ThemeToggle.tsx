@@ -11,10 +11,11 @@ export const ThemeToggle: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="button button-ghost w-10 h-10 rounded-full border shadow-sm hover:bg-accent transition-all duration-200 hover:scale-110"
+      className="btn-luxury-ghost p-2.5 rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all duration-200"
       aria-label="Toggle theme"
+      title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} mode`}
     >
-      {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+      {theme === 'light' ? <MoonIcon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
     </button>
   );
 };

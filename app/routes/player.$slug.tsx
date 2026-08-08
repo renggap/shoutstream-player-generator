@@ -1,13 +1,13 @@
 import type { Route } from "./+types/player.$slug";
-import { useLoaderData } from "react-router";
-import { getSlug, incrementAccessCount, type SlugConfig } from "../services/slug-storage.server";
+import { useLoaderData, Link } from "react-router";
+import { getSlug, incrementAccessCount } from "../services/slug-storage.server";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 export function meta({ params }: Route.MetaArgs) {
   return [
-    { title: `Player - ${params.slug}` },
-    { name: "description", content: "ShoutStream audio player" },
+    { title: `Studio Player — ${params.slug}` },
+    { name: "description", content: "ShoutStream High-Fidelity Audio Stream Player" },
   ];
 }
 
@@ -29,46 +29,76 @@ export async function loader({ params }: Route.LoaderArgs) {
   });
 
   return Response.json({
+    slug,
     streamUrl: config.streamUrl,
     logoUrl: config.logoUrl,
     serverType: config.serverType,
   });
 }
 
+interface LoaderData {
+  slug: string;
+  streamUrl: string;
+  logoUrl?: string;
+  serverType: any;
+}
+
 export default function PlayerRoute() {
-  const data = useLoaderData<typeof loader>();
+  const data = useLoaderData() as LoaderData;
 
   return (
-    <>
-      <div className="fixed top-6 right-6 z-50">
+    <div className="min-h-screen bg-luxury-pattern flex flex-col justify-between p-4 sm:p-6">
+      
+      {/* Header Bar */}
+      <div className="max-w-4xl mx-auto w-full flex items-center justify-between py-2">
+        <Link
+          to="/"
+          className="flex items-center gap-2 text-xs font-mono-tech uppercase tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
+        >
+          <span>← Back to Studio Generator</span>
+        </Link>
+
         <ThemeToggle />
       </div>
-      <AudioPlayer streamUrl={data.streamUrl} logoUrl={data.logoUrl} serverType={data.serverType} />
-    </>
+
+      {/* Audio Player Container */}
+      <div className="my-auto py-6">
+        <AudioPlayer
+          slug={data.slug}
+          streamUrl={data.streamUrl}
+          logoUrl={data.logoUrl}
+          serverType={data.serverType}
+        />
+      </div>
+
+      {/* Footer */}
+      <div className="text-center text-[11px] font-mono-tech uppercase tracking-widest text-[var(--subtle-foreground)] py-4">
+        POWERED BY SHOUTSTREAM STUDIO PLATFORM
+      </div>
+
+    </div>
   );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
-    <div className="page-background relative overflow-hidden flex items-center justify-center p-6">
-      <div className="card p-8 max-w-md w-full mx-auto relative z-10 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-destructive/15 text-destructive rounded-full mb-4">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+    <div className="min-h-screen bg-luxury-pattern flex items-center justify-center p-6">
+      <div className="card-luxury p-8 max-w-md w-full text-center relative z-10">
+        <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto mb-4 font-mono-tech font-bold text-lg">
+          !
         </div>
-        <h1 className="text-2xl font-bold mb-2">
-          Player Not Found
+        <h1 className="text-2xl font-serif-luxury font-bold text-[var(--foreground)] mb-2">
+          Studio Player Not Found
         </h1>
-        <p className="text-muted-foreground mb-6">
-          The player you're looking for doesn't exist or has been removed.
+        <p className="text-xs text-[var(--muted-foreground)] mb-6 font-mono-tech">
+          The requested stream player configuration does not exist or has expired.
         </p>
-        <a
-          href="/"
-          className="button button-primary inline-flex px-6 py-3 text-sm font-medium hover:scale-105 transition-transform"
+        <Link
+          to="/"
+          className="btn-luxury btn-luxury-primary w-full py-3 text-xs font-semibold tracking-widest"
         >
-          Create New Player
-        </a>
+          Create New Studio Player
+        </Link>
       </div>
     </div>
   );
