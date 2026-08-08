@@ -1,8 +1,4 @@
 // app/services/slug-storage.server.ts
-import fs from "fs/promises";
-import path from "path";
-
-const SLUGS_FILE = path.join(process.cwd(), "data", "slugs.json");
 
 export type ServerType = 'shoutcast-v1' | 'shoutcast-v2' | 'icecast';
 
@@ -14,12 +10,40 @@ export interface SlugConfig {
   accessCount: number;
 }
 
+// In-memory fallback for environments without KV or writable disk
+const memoryStorage = new Map<string, SlugConfig>();
+
+// Helper to acquire Cloudflare KV binding if present
+function getKVBinding(): any {
+  if (typeof globalThis !== 'undefined') {
+    const g = globalThis as any;
+    if (g.SLUGS_KV) return g.SLUGS_KV;
+    if (g.__env__?.SLUGS_KV) return g.__env__.SLUGS_KV;
+    if (g.process?.env?.SLUGS_KV) return g.process.env.SLUGS_KV;
+  }
+  return null;
+}
+
+// Helper to safely import Node fs module if in Node environment
+async function getFsModule() {
+  try {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    return { fs, path };
+  } catch {
+    return null;
+  }
+}
+
+function getFilePath(pathModule: any) {
+  return pathModule.join(process.cwd(), "data", "slugs.json");
+}
+
 // Validate slug format to prevent path traversal
 function validateSlug(slug: string): void {
   if (!slug || typeof slug !== 'string') {
     throw new Error('Slug must be a non-empty string');
   }
-  // Only allow alphanumeric and hyphens
   if (!/^[a-zA-Z0-9-]+$/.test(slug)) {
     throw new Error('Slug contains invalid characters');
   }
@@ -31,17 +55,32 @@ function validateSlug(slug: string): void {
 export async function getSlug(slug: string): Promise<SlugConfig | null> {
   validateSlug(slug);
 
-  try {
-    const data = await fs.readFile(SLUGS_FILE, "utf-8");
-    const slugs: Record<string, SlugConfig> = JSON.parse(data);
-    return slugs[slug] || null;
-  } catch (error) {
-    // Only catch file not found errors, let others propagate
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null;
+  // 1. Try Cloudflare KV first
+  const kv = getKVBinding();
+  if (kv) {
+    try {
+      const data = await kv.get(`slug:${slug}`, 'json');
+      if (data) return data as SlugConfig;
+    } catch (e) {
+      console.warn("KV fetch error:", e);
     }
-    throw error;
   }
+
+  // 2. Try Node filesystem
+  const nodeFs = await getFsModule();
+  if (nodeFs) {
+    try {
+      const filePath = getFilePath(nodeFs.path);
+      const data = await nodeFs.fs.readFile(filePath, "utf-8");
+      const slugs: Record<string, SlugConfig> = JSON.parse(data);
+      if (slugs[slug]) return slugs[slug];
+    } catch {
+      // Fall through to memory storage
+    }
+  }
+
+  // 3. Fallback to memory
+  return memoryStorage.get(slug) || null;
 }
 
 export async function saveSlug(
@@ -50,42 +89,84 @@ export async function saveSlug(
 ): Promise<void> {
   validateSlug(slug);
 
-  // Validate serverType is provided
   if (!config.serverType || !['shoutcast-v1', 'shoutcast-v2', 'icecast'].includes(config.serverType)) {
     throw new Error('Invalid serverType. Must be: shoutcast-v1, shoutcast-v2, or icecast');
   }
 
-  let slugs: Record<string, SlugConfig> = {};
-
-  try {
-    const data = await fs.readFile(SLUGS_FILE, "utf-8");
-    slugs = JSON.parse(data);
-  } catch {
-    // File doesn't exist yet
-  }
-
-  slugs[slug] = {
+  const record: SlugConfig = {
     ...config,
     createdAt: new Date().toISOString(),
     accessCount: 0,
   };
 
-  await fs.mkdir(path.dirname(SLUGS_FILE), { recursive: true });
-  await fs.writeFile(SLUGS_FILE, JSON.stringify(slugs, null, 2));
+  // 1. Save to Cloudflare KV if bound
+  const kv = getKVBinding();
+  if (kv) {
+    try {
+      await kv.put(`slug:${slug}`, JSON.stringify(record));
+    } catch (e) {
+      console.warn("KV put error:", e);
+    }
+  }
+
+  // 2. Save to memory
+  memoryStorage.set(slug, record);
+
+  // 3. Save to Node filesystem if supported
+  const nodeFs = await getFsModule();
+  if (nodeFs) {
+    try {
+      const filePath = getFilePath(nodeFs.path);
+      let slugs: Record<string, SlugConfig> = {};
+      try {
+        const data = await nodeFs.fs.readFile(filePath, "utf-8");
+        slugs = JSON.parse(data);
+      } catch {
+        // File doesn't exist yet
+      }
+      slugs[slug] = record;
+      await nodeFs.fs.mkdir(nodeFs.path.dirname(filePath), { recursive: true });
+      await nodeFs.fs.writeFile(filePath, JSON.stringify(slugs, null, 2));
+    } catch {
+      // Ignore fs write failure if in serverless environment
+    }
+  }
 }
 
 export async function incrementAccessCount(slug: string): Promise<void> {
   validateSlug(slug);
 
-  // Single read-modify-write operation
-  const data = await fs.readFile(SLUGS_FILE, "utf-8");
-  const slugs: Record<string, SlugConfig> = JSON.parse(data);
-
-  if (!slugs[slug]) {
-    throw new Error(`Slug ${slug} not found`);
+  const kv = getKVBinding();
+  if (kv) {
+    try {
+      const record = (await kv.get(`slug:${slug}`, 'json')) as SlugConfig | null;
+      if (record) {
+        record.accessCount++;
+        await kv.put(`slug:${slug}`, JSON.stringify(record));
+        return;
+      }
+    } catch {
+      // Ignore
+    }
   }
 
-  slugs[slug].accessCount++;
+  const memoryRecord = memoryStorage.get(slug);
+  if (memoryRecord) {
+    memoryRecord.accessCount++;
+  }
 
-  await fs.writeFile(SLUGS_FILE, JSON.stringify(slugs, null, 2));
+  const nodeFs = await getFsModule();
+  if (nodeFs) {
+    try {
+      const filePath = getFilePath(nodeFs.path);
+      const data = await nodeFs.fs.readFile(filePath, "utf-8");
+      const slugs: Record<string, SlugConfig> = JSON.parse(data);
+      if (slugs[slug]) {
+        slugs[slug].accessCount++;
+        await nodeFs.fs.writeFile(filePath, JSON.stringify(slugs, null, 2));
+      }
+    } catch {
+      // Ignore
+    }
+  }
 }
