@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Howl } from 'howler';
 import { PlayIcon } from './icons/PlayIcon';
 import { StopIcon } from './icons/StopIcon';
 import { VolumeUpIcon } from './icons/VolumeUpIcon';
@@ -40,154 +39,121 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
 
-  const retryCountRef = useRef(0);
-  const urlVariantIndexRef = useRef(0);
-  const soundRef = useRef<Howl | null>(null);
+  const [currentVariantIndex, setCurrentVariantIndex] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const urlVariants = useMemo(() => generateStreamUrlVariants(streamUrl), [streamUrl]);
-  const currentUrlIndex = urlVariantIndexRef.current;
+  const urlVariants = useMemo(() => generateStreamUrlVariants(streamUrl, serverType), [streamUrl, serverType]);
 
-  const effectiveStreamUrl = useMemo(() => {
-    const url = urlVariants[currentUrlIndex];
+  const getActiveStreamUrl = useCallback((index: number) => {
+    const targetUrl = urlVariants[index] || urlVariants[0] || streamUrl;
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    const isInsecureStream = url.startsWith('http:') && isHttps;
+    if (targetUrl.startsWith('http:') && isHttps) {
+      return `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+    }
+    return targetUrl;
+  }, [urlVariants, streamUrl]);
 
-    if (isInsecureStream) {
-      return `/api/proxy?url=${encodeURIComponent(url)}`;
+  const playAudioVariant = useCallback((index: number) => {
+    if (typeof window === 'undefined') return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
     }
 
-    return url;
-  }, [urlVariants, currentUrlIndex]);
+    const audio = audioRef.current;
+    const src = getActiveStreamUrl(index);
 
-  const initializeAudio = useCallback(() => {
-    if (soundRef.current) return;
+    setStatus('Connecting stream...');
+    setStreamHealth('unknown');
 
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    const audioContext = new AudioContext();
-    audioContext.resume().catch((err) => console.error('AudioContext resume failed:', err));
+    audio.pause();
+    audio.src = src;
+    audio.volume = isMuted ? 0 : volume;
 
-    const sound = new Howl({
-      src: [effectiveStreamUrl],
-      html5: true,
-      format: ['aac', 'mp3', 'ogg'],
-      volume: isMuted ? 0 : volume,
-      preload: false,
-      onplay: () => {
-        setIsPlaying(true);
-        setStatus('Playing');
-        setStreamHealth('healthy');
-        retryCountRef.current = 0;
-        urlVariantIndexRef.current = 0;
-      },
-      onpause: () => {
+    audio.play().then(() => {
+      setIsPlaying(true);
+      setStatus('Playing Live');
+      setStreamHealth('healthy');
+    }).catch((err) => {
+      console.warn(`Playback failed for variant index ${index} (${src}):`, err);
+      // Try next variant if available
+      if (index + 1 < urlVariants.length) {
+        const nextIdx = index + 1;
+        setCurrentVariantIndex(nextIdx);
+        playAudioVariant(nextIdx);
+      } else {
         setIsPlaying(false);
-        setStatus('Paused');
-      },
-      onend: () => {
-        setIsPlaying(false);
-        setStatus('Ended');
-      },
-      onstop: () => {
-        setIsPlaying(false);
-        setStatus('Stopped');
-      },
-      onloaderror: () => handleStreamError(),
-      onplayerror: () => handleStreamError(),
-    });
-
-    soundRef.current = sound;
-  }, [effectiveStreamUrl, isMuted, volume]);
-
-  const handleStreamError = useCallback(() => {
-    setStreamHealth('unhealthy');
-    setStatus('Stream connection error');
-
-    if (urlVariantIndexRef.current < urlVariants.length - 1) {
-      const nextIndex = urlVariantIndexRef.current + 1;
-      urlVariantIndexRef.current = nextIndex;
-      const nextUrl = urlVariants[nextIndex];
-      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-      const proxyUrl = nextUrl.startsWith('http:') && isHttps
-        ? `/api/proxy?url=${encodeURIComponent(nextUrl)}`
-        : nextUrl;
-
-      setStatus(`Connecting alternative source...`);
-      setStreamHealth('unknown');
-
-      if (soundRef.current) {
-        soundRef.current.unload();
-        soundRef.current = new Howl({
-          src: [proxyUrl],
-          html5: true,
-          format: ['aac', 'mp3', 'ogg'],
-          volume: isMuted ? 0 : volume,
-        });
-      }
-      return;
-    }
-
-    if (retryCountRef.current < 3) {
-      setTimeout(() => {
-        urlVariantIndexRef.current = 0;
-        retryCountRef.current += 1;
-        const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-        const proxyUrl = urlVariants[0].startsWith('http:') && isHttps
-          ? `/api/proxy?url=${encodeURIComponent(urlVariants[0])}`
-          : urlVariants[0];
-
-        if (soundRef.current) {
-          soundRef.current.unload();
-          soundRef.current = new Howl({
-            src: [proxyUrl],
-            html5: true,
-            format: ['aac', 'mp3', 'ogg'],
-            volume: isMuted ? 0 : volume,
-          });
-        }
-      }, 2000 * (retryCountRef.current + 1));
-    } else {
-      setStatus('Unable to connect to stream.');
-    }
-  }, [urlVariants, volume, isMuted]);
-
-  const togglePlayPause = useCallback(async () => {
-    if (isPlaying) {
-      if (soundRef.current) {
-        soundRef.current.pause();
-        setStatus('Paused');
-      }
-    } else {
-      if (!soundRef.current) {
-        initializeAudio();
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      if (streamHealth === 'unhealthy') {
-        setStreamHealth('unknown');
-        setStatus('Connecting...');
-      }
-
-      try {
-        if (soundRef.current) {
-          soundRef.current.play();
-        }
-      } catch (err) {
-        setStatus('Failed to play');
+        setStatus('Stream connection error. Click Retry.');
         setStreamHealth('unhealthy');
       }
-    }
-  }, [isPlaying, streamHealth, initializeAudio]);
+    });
+  }, [getActiveStreamUrl, isMuted, volume, urlVariants]);
 
+  const togglePlayPause = useCallback(() => {
+    if (isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setIsPlaying(false);
+      setStatus('Paused');
+    } else {
+      playAudioVariant(currentVariantIndex);
+    }
+  }, [isPlaying, currentVariantIndex, playAudioVariant]);
+
+  // Clean up audio element on unmount
   useEffect(() => {
     setLogoError(false);
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unload();
-        soundRef.current = null;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
       }
     };
   }, [logoUrl]);
 
+  // Handle native audio events
+  useEffect(() => {
+    if (!audioRef.current) return;
+    const audio = audioRef.current;
+
+    const handlePlaying = () => {
+      setIsPlaying(true);
+      setStatus('Playing Live');
+      setStreamHealth('healthy');
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      setStatus('Paused');
+    };
+
+    const handleError = () => {
+      console.warn("Native audio onerror event fired");
+      if (currentVariantIndex + 1 < urlVariants.length) {
+        const nextIdx = currentVariantIndex + 1;
+        setCurrentVariantIndex(nextIdx);
+        playAudioVariant(nextIdx);
+      } else {
+        setIsPlaying(false);
+        setStatus('Stream offline');
+        setStreamHealth('unhealthy');
+      }
+    };
+
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('error', handleError);
+    };
+  }, [currentVariantIndex, urlVariants, playAudioVariant]);
+
+  // Fetch metadata periodically
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
@@ -201,7 +167,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
     };
 
     fetchMetadata();
-    const intervalId = setInterval(fetchMetadata, 6000);
+    const intervalId = setInterval(fetchMetadata, 5000);
 
     return () => clearInterval(intervalId);
   }, [streamUrl, serverType]);
@@ -209,42 +175,41 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    if (soundRef.current) {
-      soundRef.current.volume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
       if (newVolume > 0 && isMuted) {
         setIsMuted(false);
-        soundRef.current.mute(false);
+        audioRef.current.muted = false;
       }
     }
   };
 
   const toggleMute = useCallback(() => {
-    if (!soundRef.current) return;
     if (isMuted) {
-      soundRef.current.mute(false);
       setIsMuted(false);
       const restoreVol = lastVolume > 0.05 ? lastVolume : 0.5;
       setVolume(restoreVol);
-      soundRef.current.volume(restoreVol);
+      if (audioRef.current) {
+        audioRef.current.muted = false;
+        audioRef.current.volume = restoreVol;
+      }
     } else {
       setLastVolume(volume);
-      soundRef.current.mute(true);
       setIsMuted(true);
       setVolume(0);
+      if (audioRef.current) {
+        audioRef.current.muted = true;
+      }
     }
   }, [isMuted, volume, lastVolume]);
 
   const retryConnection = useCallback(() => {
-    if (soundRef.current) {
-      soundRef.current.unload();
-      soundRef.current = null;
-    }
-    setStreamHealth('unknown');
-    setStatus('Retrying...');
-    retryCountRef.current = 0;
-    urlVariantIndexRef.current = 0;
+    setCurrentVariantIndex(0);
     setIsPlaying(false);
-  }, []);
+    setStatus('Retrying connection...');
+    setStreamHealth('unknown');
+    playAudioVariant(0);
+  }, [playAudioVariant]);
 
   const getPlayerUrl = () => {
     if (typeof window !== 'undefined') {
@@ -399,7 +364,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
           <div className="flex items-center gap-4">
             <button
               onClick={togglePlayPause}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center shadow-[0_8px_25px_rgba(0,0,0,0.3)] hover:scale-[1.04] active:scale-[0.96] transition-all duration-200 border border-white/20 hover:border-white/40 focus:outline-none"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center shadow-[0_8px_25px_rgba(0,0,0,0.3)] hover:scale-[1.04] active:scale-[0.96] transition-all duration-200 border border-white/20 hover:border-white/40 focus:outline-none cursor-pointer"
               aria-label={isPlaying ? 'Pause stream' : 'Play stream'}
             >
               {isPlaying ? (
@@ -457,7 +422,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
           <div className="w-full flex items-center justify-between pt-4 border-t border-[var(--border)]">
             <button
               onClick={() => { setShowShareModal(true); setActiveTab('link'); }}
-              className="flex items-center gap-2 text-xs font-mono-tech uppercase text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors py-1 px-2 rounded-md"
+              className="flex items-center gap-2 text-xs font-mono-tech uppercase text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors py-1 px-2 rounded-md cursor-pointer"
             >
               <ShareIcon className="w-3.5 h-3.5" />
               <span>Share Link</span>
@@ -465,7 +430,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
 
             <button
               onClick={() => { setShowShareModal(true); setActiveTab('embed'); }}
-              className="flex items-center gap-2 text-xs font-mono-tech uppercase text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors py-1 px-2 rounded-md"
+              className="flex items-center gap-2 text-xs font-mono-tech uppercase text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors py-1 px-2 rounded-md cursor-pointer"
             >
               <CodeIcon className="w-3.5 h-3.5" />
               <span>Embed Code</span>
@@ -496,7 +461,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
             <div className="flex border-b border-[var(--border)] mb-6">
               <button
                 onClick={() => setActiveTab('link')}
-                className={`py-2 px-4 text-xs font-mono-tech uppercase tracking-wider transition-colors border-b-2 ${
+                className={`py-2 px-4 text-xs font-mono-tech uppercase tracking-wider transition-colors border-b-2 cursor-pointer ${
                   activeTab === 'link'
                     ? 'border-[var(--primary)] text-[var(--primary)] font-semibold'
                     : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -506,7 +471,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
               </button>
               <button
                 onClick={() => setActiveTab('embed')}
-                className={`py-2 px-4 text-xs font-mono-tech uppercase tracking-wider transition-colors border-b-2 ${
+                className={`py-2 px-4 text-xs font-mono-tech uppercase tracking-wider transition-colors border-b-2 cursor-pointer ${
                   activeTab === 'embed'
                     ? 'border-[var(--primary)] text-[var(--primary)] font-semibold'
                     : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'

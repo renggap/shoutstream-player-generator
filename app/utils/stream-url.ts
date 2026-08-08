@@ -2,9 +2,6 @@
  * Utilities for normalizing stream URLs for different server types
  */
 
-/**
- * Detects the type of streaming server based on URL patterns
- */
 export function detectServerType(url: string): 'icecast' | 'shoutcast' | 'unknown' {
   try {
     const parsed = new URL(url);
@@ -21,35 +18,18 @@ export function detectServerType(url: string): 'icecast' | 'shoutcast' | 'unknow
   }
 }
 
-/**
- * Normalizes a stream URL by ensuring valid protocol and trailing slash if bare port
- */
 export function normalizeStreamUrl(url: string): string {
   let normalized = url.trim();
-
   if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
     normalized = `http://${normalized}`;
   }
-
-  try {
-    const parsed = new URL(normalized);
-    if (!parsed.pathname || parsed.pathname === '') {
-      normalized = `${normalized}/`;
-    }
-  } catch {
-    // Keep as is
-  }
-
   return normalized;
 }
 
 /**
- * Generates list of possible stream URLs to try for playback
- *
- * @param url The original stream URL
- * @returns Array of possible URLs to try
+ * Generates ordered list of possible stream URLs to try for playback based on server type
  */
-export function generateStreamUrlVariants(url: string): string[] {
+export function generateStreamUrlVariants(url: string, serverType?: string): string[] {
   const variants: string[] = [];
 
   let cleanUrl = url.trim();
@@ -57,25 +37,42 @@ export function generateStreamUrlVariants(url: string): string[] {
     cleanUrl = `http://${cleanUrl}`;
   }
 
-  variants.push(cleanUrl);
-
   try {
     const parsed = new URL(cleanUrl);
     const baseUrl = `${parsed.protocol}//${parsed.hostname}${parsed.port ? ':' + parsed.port : ''}`;
     const rawPath = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/$/, '');
 
-    // Add trailing slash variant if missing
-    variants.push(`${baseUrl}${rawPath}/`);
-    variants.push(`${baseUrl}${rawPath}/1`);
-    variants.push(`${baseUrl}${rawPath}/stream`);
-    variants.push(`${baseUrl}${rawPath}/;`);
-    variants.push(`${baseUrl}${rawPath}/;stream`);
-    variants.push(`${baseUrl}${rawPath}/radio.mp3`);
-    variants.push(`${baseUrl}${rawPath}/listen.mp3`);
+    if (serverType === 'shoutcast-v2') {
+      // Shoutcast v2 stream endpoints (mount point /1 is standard)
+      if (rawPath) {
+        variants.push(cleanUrl);
+      }
+      variants.push(`${baseUrl}${rawPath}/1`);
+      variants.push(`${baseUrl}${rawPath}/stream`);
+      variants.push(`${baseUrl}${rawPath}/;`);
+      variants.push(`${baseUrl}${rawPath}/radio.mp3`);
+      variants.push(cleanUrl);
+      variants.push(`${baseUrl}${rawPath}/`);
+    } else if (serverType === 'shoutcast-v1') {
+      if (rawPath) {
+        variants.push(cleanUrl);
+      }
+      variants.push(`${baseUrl}${rawPath}/;`);
+      variants.push(`${baseUrl}${rawPath}/1`);
+      variants.push(`${baseUrl}${rawPath}/stream`);
+      variants.push(cleanUrl);
+      variants.push(`${baseUrl}${rawPath}/`);
+    } else {
+      // Icecast or default
+      variants.push(cleanUrl);
+      variants.push(`${baseUrl}${rawPath}/stream`);
+      variants.push(`${baseUrl}${rawPath}/;stream.mp3`);
+      variants.push(`${baseUrl}${rawPath}/listen.mp3`);
+      variants.push(`${baseUrl}${rawPath}/`);
+    }
   } catch {
     variants.push(url);
   }
 
-  // Remove duplicates while preserving order
   return Array.from(new Set(variants.filter(Boolean)));
 }
