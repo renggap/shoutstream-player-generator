@@ -69,7 +69,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
     const sound = new Howl({
       src: [effectiveStreamUrl],
       html5: true,
-      format: ['mp3', 'aac', 'ogg'],
+      format: ['aac', 'mp3', 'ogg'],
       volume: isMuted ? 0 : volume,
       preload: false,
       onplay: () => {
@@ -119,7 +119,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
         soundRef.current = new Howl({
           src: [proxyUrl],
           html5: true,
-          format: ['mp3', 'aac', 'ogg'],
+          format: ['aac', 'mp3', 'ogg'],
           volume: isMuted ? 0 : volume,
         });
       }
@@ -140,7 +140,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
           soundRef.current = new Howl({
             src: [proxyUrl],
             html5: true,
-            format: ['mp3', 'aac', 'ogg'],
+            format: ['aac', 'mp3', 'ogg'],
             volume: isMuted ? 0 : volume,
           });
         }

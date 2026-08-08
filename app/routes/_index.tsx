@@ -18,36 +18,20 @@ interface ActionData {
   slug?: string;
 }
 
-const SAMPLE_PRESETS = [
-  {
-    name: "Smooth Jazz",
-    url: "https://stream.zeno.fm/f3wvbbscg8quv",
-    serverType: "icecast",
-    logoUrl: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&auto=format&fit=crop&q=80"
-  },
-  {
-    name: "Classic Radio",
-    url: "https://stream.zeno.fm/0r0xa7s414zuv",
-    serverType: "icecast",
-    logoUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80"
-  },
-  {
-    name: "Chill Ambient",
-    url: "https://stream.zeno.fm/a812m80b28quv",
-    serverType: "icecast",
-    logoUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=80"
-  }
-];
-
 export async function action({ request }: Route.ActionArgs) {
   const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz');
   const formData = await request.formData();
-  const streamUrl = formData.get("streamUrl");
-  const logoUrl = formData.get("logoUrl");
+  let streamUrl = formData.get("streamUrl");
+  let logoUrl = formData.get("logoUrl");
   const serverType = formData.get("serverType");
 
   if (!streamUrl || typeof streamUrl !== "string") {
     return { error: "Stream URL is required" };
+  }
+
+  streamUrl = streamUrl.trim();
+  if (!streamUrl.startsWith("http://") && !streamUrl.startsWith("https://")) {
+    streamUrl = `http://${streamUrl}`;
   }
 
   try {
@@ -86,14 +70,8 @@ export async function action({ request }: Route.ActionArgs) {
 export default function Index() {
   const actionData = useActionData<ActionData>();
   const [streamUrl, setStreamUrl] = useState("");
-  const [serverType, setServerType] = useState("icecast");
+  const [serverType, setServerType] = useState("shoutcast-v2");
   const [logoUrl, setLogoUrl] = useState("");
-
-  const handleSelectPreset = (preset: typeof SAMPLE_PRESETS[0]) => {
-    setStreamUrl(preset.url);
-    setServerType(preset.serverType);
-    setLogoUrl(preset.logoUrl);
-  };
 
   return (
     <div className="min-h-screen bg-luxury-pattern relative flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-8">
@@ -154,25 +132,6 @@ export default function Index() {
                 <span className="text-xs font-mono-tech text-[var(--primary)] uppercase tracking-wider">
                   STEP 01/02
                 </span>
-              </div>
-
-              {/* Sample Quick Presets */}
-              <div className="mb-6">
-                <label className="block text-xs font-mono-tech uppercase tracking-wider text-[var(--subtle-foreground)] mb-2.5">
-                  Try Sample Stream Presets
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {SAMPLE_PRESETS.map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => handleSelectPreset(preset)}
-                      className="btn-luxury-outline text-xs py-1.5 px-3 rounded-full font-mono-tech transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
-                    >
-                      + {preset.name}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <Form method="post" className="space-y-5">
