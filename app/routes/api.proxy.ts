@@ -47,6 +47,20 @@ async function isBlockedHost(hostname: string): Promise<boolean> {
   // Literal IPv6
   if (host.includes(":")) {
     const v6 = host.replace(/(^\[|\]$)/g, "");
+    // IPv4-mapped/compatible addresses embed an IPv4 address; check it as
+    // IPv4. Covers "::ffff:7f00:1" (WHATWG-normalized) and "::ffff:127.0.0.1"
+    // (DNS lookup output). ponytail: NAT64 64:ff9b::/96 not handled; only
+    // matters behind a NAT64 gateway translating private v4, which isn't real.
+    const dotted = v6.match(/(^|:)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+    if (dotted) return isBlockedHost(dotted[2]);
+    if (v6.startsWith("::")) {
+      const m = v6.slice(2).match(/^(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+      if (m) {
+        const hi = parseInt(m[1], 16);
+        const lo = parseInt(m[2], 16);
+        return isBlockedHost(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+      }
+    }
     return (
       v6 === "::" || v6 === "::1" ||
       v6.startsWith("fe80:") || v6.startsWith("fc") || v6.startsWith("fd")
@@ -101,14 +115,38 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const response = await fetch(streamUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Icy-MetaData": "1",
-        "Accept": "*/*",
-      },
-      redirect: "follow",
-    });
+    // Fetch without auto-following redirects: a public host could 302 to a
+    // private/metadata IP and skip the check above. Follow hops manually.
+    let response: Response | null = null;
+    let current = validatedUrl;
+    for (let hop = 0; hop < 5; hop++) {
+      response = await fetch(current, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Icy-MetaData": "1",
+          "Accept": "*/*",
+        },
+        redirect: "manual",
+      });
+      if (response.status < 300 || response.status >= 400) break;
+      const location = response.headers.get("Location");
+      if (!location) break;
+      const next = new URL(location, current);
+      if (!["http:", "https:"].includes(next.protocol)) {
+        return corsResponse("Redirect to non-HTTP protocol blocked", { status: 400 });
+      }
+      if (await isBlockedHost(next.hostname)) {
+        return corsResponse("Blocked host", { status: 403 });
+      }
+      response.body?.cancel().catch(() => {});
+      current = next;
+    }
+    if (response && response.status >= 300 && response.status < 400) {
+      return corsResponse("Too many redirects", { status: 508 });
+    }
+    if (!response) {
+      return corsResponse("Failed to fetch stream", { status: 502 });
+    }
 
     if (!response.ok) {
       return corsResponse(`Stream returned ${response.status}`, {
@@ -127,12 +165,14 @@ export async function loader({ request }: Route.LoaderArgs) {
       contentType.includes("shoutcast") ||
       contentType === "";
 
-    // For non-audio text/JSON/XML metadata responses
+    // For non-audio text/JSON/XML metadata responses. HTML is re-served as
+    // text/plain: this origin is untrusted for remote markup and 7.html
+    // clients only read it as text. Shoutcast v1 serves 7.html as text/html.
     if (!isAudioStream && (contentType.includes("json") || contentType.includes("xml") || contentType.includes("html") || contentType.includes("text"))) {
       const data = await response.arrayBuffer();
       return new Response(data, {
         headers: {
-          "Content-Type": contentType,
+          "Content-Type": contentType.includes("html") ? "text/plain; charset=utf-8" : contentType,
           ...PROXY_HEADERS,
         },
       });
