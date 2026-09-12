@@ -53,12 +53,17 @@ async function isBlockedHost(hostname: string): Promise<boolean> {
     );
   }
 
-  // Hostname: resolve and check all addresses (DNS rebinding mitigation)
+  // Hostname: resolve and check all addresses (DNS rebinding mitigation).
+  // Note: Array.some() cannot be used here — an async callback returns a
+  // Promise (always truthy) and would block every resolvable host.
   try {
     // @ts-ignore -- Node types; fetch-only runtimes skip this
     const dns = await import("node:dns/promises");
     const addrs = await dns.lookup(host, { all: true });
-    return addrs.some((addr) => isBlockedHost(addr.address));
+    for (const addr of addrs) {
+      if (await isBlockedHost(addr.address)) return true;
+    }
+    return false;
   } catch {
     // No DNS available (e.g. Cloudflare Workers): allow. Browsers block
     // literal-IP tricks there anyway since the check above covers literals.
