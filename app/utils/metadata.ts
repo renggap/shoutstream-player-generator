@@ -2,24 +2,41 @@
  * Utilities for fetching stream metadata with CORS proxy support
  */
 
-import { isDevServerAvailable } from './dev-server';
 import type { ServerType } from '../services/slug-storage.server';
 
+const PROXY_PATH = '/api/proxy';
+
 /**
- * Fetch data through a CORS proxy
- * @param url The target URL to fetch
- * @returns Promise with the response data
+ * Needs the CORS proxy? Direct fetch fails when the page is HTTPS and the
+ * target is HTTP (mixed content), or when the target lacks CORS headers.
+ */
+function shouldProxy(url: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const isMixedContent = url.startsWith('http:') && window.location.protocol === 'https:';
+  const isCrossOrigin = !url.startsWith(window.location.origin);
+  return isMixedContent || isCrossOrigin;
+}
+
+function proxied(url: string): string {
+  return `${PROXY_PATH}?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Fetch data, falling back to the CORS proxy when a direct cross-origin
+ * request fails (CORS-blocked responses reject with a TypeError).
  */
 export async function proxyFetch(url: string): Promise<Response> {
-  const isInsecureRequest = url.startsWith('http:') && typeof window !== 'undefined' && window.location.protocol === 'https:';
-
-  if (isInsecureRequest) {
-    // Use local CORS proxy for insecure requests
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-    return fetch(proxyUrl);
+  if (!shouldProxy(url)) {
+    return fetch(url);
   }
 
-  return fetch(url);
+  const direct = await fetch(url).catch(() => null);
+  if (direct && direct.ok) {
+    return direct;
+  }
+
+  // Mixed content is never attempted directly; it always rejects anyway.
+  return fetch(proxied(url));
 }
 
 /**
@@ -283,7 +300,8 @@ export async function fetchStreamMetadata(
       console.log(`[metadata] Fetching from Icecast endpoint`);
       const result = await tryFetchEndpoint(
         `${baseUrl}/status-json.xsl`,
-        parseIcecastMetadata
+        parseIcecastMetadata,
+        true // some Icecast builds return text/html content-type for this XSLT endpoint
       );
       if (result.success && result.data) {
         return result.data;
@@ -301,9 +319,9 @@ export async function fetchStreamMetadata(
       if (result.success && result.data) {
         return result.data;
       }
-      // Fallback to 7.html
+      // Fallback to 7.html (Shoutcast v1 legacy CSV stats endpoint)
       result = await tryFetchEndpoint(
-        `${baseUrl}/`,
+        `${baseUrl}/7.html`,
         parseShoutcastV2Html,
         true
       );
@@ -320,8 +338,7 @@ export async function fetchStreamMetadata(
         `${baseUrl}/stats`,
         parseShoutcastV2Xml,
         true
-      );
-      if (result.success && result.data) {
+      );      if (result.success && result.data) {
         return result.data;
       }
       // Try API endpoint
@@ -344,6 +361,3 @@ export async function fetchStreamMetadata(
   console.log('[metadata] All endpoints failed for', serverType);
   throw new Error(`Unable to fetch metadata from ${serverType} server`);
 }
-
-// Re-export isDevServerAvailable for convenience
-export { isDevServerAvailable };

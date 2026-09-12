@@ -35,7 +35,10 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    new URL(streamUrl);
+    const parsed = new URL(streamUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { error: "Please enter a valid HTTP/HTTPS stream URL" };
+    }
   } catch {
     return { error: "Please enter a valid HTTP/HTTPS stream URL" };
   }
@@ -48,9 +51,13 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Invalid server type specified" };
   }
 
-  if (logoUrl && typeof logoUrl === "string" && logoUrl.trim() !== "") {
+  const trimmedLogoUrl = logoUrl && typeof logoUrl === "string" ? logoUrl.trim() : "";
+  if (trimmedLogoUrl !== "") {
     try {
-      new URL(logoUrl);
+      const parsedLogo = new URL(trimmedLogoUrl);
+      if (!['http:', 'https:'].includes(parsedLogo.protocol)) {
+        return { error: "Please enter a valid logo image URL" };
+      }
     } catch {
       return { error: "Please enter a valid logo image URL" };
     }
@@ -60,7 +67,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   await saveSlug(slug, {
     streamUrl,
-    logoUrl: logoUrl && typeof logoUrl === "string" && logoUrl.trim() !== "" ? logoUrl : undefined,
+    logoUrl: trimmedLogoUrl !== "" ? trimmedLogoUrl : undefined,
     serverType: serverType as 'shoutcast-v1' | 'shoutcast-v2' | 'icecast',
   });
 

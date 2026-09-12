@@ -13,6 +13,11 @@ export interface SlugConfig {
 // In-memory fallback for environments without KV or writable disk
 const memoryStorage = new Map<string, SlugConfig>();
 
+// Serializes read-modify-write cycles on slugs.json so concurrent requests
+// can't clobber each other's updates (lost-update race).
+// ponytail: in-process only; multi-instance deployments need a real store (DB/KV)
+let fsWriteChain: Promise<unknown> = Promise.resolve();
+
 // Helper to acquire Cloudflare KV binding if present
 function getKVBinding(): any {
   if (typeof globalThis !== 'undefined') {
@@ -116,21 +121,24 @@ export async function saveSlug(
   // 3. Save to Node filesystem if supported
   const nodeFs = await getFsModule();
   if (nodeFs) {
-    try {
-      const filePath = getFilePath(nodeFs.path);
-      let slugs: Record<string, SlugConfig> = {};
+    fsWriteChain = fsWriteChain.then(async () => {
       try {
-        const data = await nodeFs.fs.readFile(filePath, "utf-8");
-        slugs = JSON.parse(data);
+        const filePath = getFilePath(nodeFs.path);
+        let slugs: Record<string, SlugConfig> = {};
+        try {
+          const data = await nodeFs.fs.readFile(filePath, "utf-8");
+          slugs = JSON.parse(data);
+        } catch {
+          // File doesn't exist yet
+        }
+        slugs[slug] = record;
+        await nodeFs.fs.mkdir(nodeFs.path.dirname(filePath), { recursive: true });
+        await nodeFs.fs.writeFile(filePath, JSON.stringify(slugs, null, 2));
       } catch {
-        // File doesn't exist yet
+        // Ignore fs write failure if in serverless environment
       }
-      slugs[slug] = record;
-      await nodeFs.fs.mkdir(nodeFs.path.dirname(filePath), { recursive: true });
-      await nodeFs.fs.writeFile(filePath, JSON.stringify(slugs, null, 2));
-    } catch {
-      // Ignore fs write failure if in serverless environment
-    }
+    });
+    await fsWriteChain;
   }
 }
 
@@ -144,7 +152,7 @@ export async function incrementAccessCount(slug: string): Promise<void> {
       if (record) {
         record.accessCount++;
         await kv.put(`slug:${slug}`, JSON.stringify(record));
-        return;
+        return; // KV is authoritative; skip memory/fs paths
       }
     } catch {
       // Ignore
@@ -158,16 +166,19 @@ export async function incrementAccessCount(slug: string): Promise<void> {
 
   const nodeFs = await getFsModule();
   if (nodeFs) {
-    try {
-      const filePath = getFilePath(nodeFs.path);
-      const data = await nodeFs.fs.readFile(filePath, "utf-8");
-      const slugs: Record<string, SlugConfig> = JSON.parse(data);
-      if (slugs[slug]) {
-        slugs[slug].accessCount++;
-        await nodeFs.fs.writeFile(filePath, JSON.stringify(slugs, null, 2));
+    fsWriteChain = fsWriteChain.then(async () => {
+      try {
+        const filePath = getFilePath(nodeFs.path);
+        const data = await nodeFs.fs.readFile(filePath, "utf-8");
+        const slugs: Record<string, SlugConfig> = JSON.parse(data);
+        if (slugs[slug]) {
+          slugs[slug].accessCount++;
+          await nodeFs.fs.writeFile(filePath, JSON.stringify(slugs, null, 2));
+        }
+      } catch {
+        // Ignore
       }
-    } catch {
-      // Ignore
-    }
+    });
+    await fsWriteChain;
   }
 }

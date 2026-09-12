@@ -41,8 +41,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
 
   const [currentVariantIndex, setCurrentVariantIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentVariantRef = useRef(0);
+  const attemptRef = useRef(0);
+  const wasPlayingRef = useRef(false);
+  const switchingRef = useRef(false);
 
   const urlVariants = useMemo(() => generateStreamUrlVariants(streamUrl, serverType), [streamUrl, serverType]);
+
+  const getAudio = useCallback((): HTMLAudioElement | null => {
+    if (typeof window === 'undefined') return null;
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.preload = 'none';
+    }
+    return audioRef.current;
+  }, []);
 
   const getActiveStreamUrl = useCallback((index: number) => {
     const targetUrl = urlVariants[index] || urlVariants[0] || streamUrl;
@@ -54,15 +67,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
   }, [urlVariants, streamUrl]);
 
   const playAudioVariant = useCallback((index: number) => {
-    if (typeof window === 'undefined') return;
+    const audio = getAudio();
+    if (!audio) return;
 
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-    }
-
-    const audio = audioRef.current;
+    // Attempt token: stale play() rejections and duplicate error events no-op
+    const attempt = ++attemptRef.current;
+    currentVariantRef.current = index;
     const src = getActiveStreamUrl(index);
 
+    switchingRef.current = true;
+    wasPlayingRef.current = false;
     setStatus('Connecting stream...');
     setStreamHealth('unknown');
 
@@ -70,27 +84,43 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
     audio.src = src;
     audio.volume = isMuted ? 0 : volume;
 
-    audio.play().then(() => {
-      setIsPlaying(true);
-      setStatus('Playing Live');
-      setStreamHealth('healthy');
-    }).catch((err) => {
-      console.warn(`Playback failed for variant index ${index} (${src}):`, err);
-      // Try next variant if available
+    const failover = () => {
+      if (attemptRef.current !== attempt) return;
       if (index + 1 < urlVariants.length) {
-        const nextIdx = index + 1;
-        setCurrentVariantIndex(nextIdx);
-        playAudioVariant(nextIdx);
+        setCurrentVariantIndex(index + 1);
+        playAudioVariant(index + 1);
       } else {
+        switchingRef.current = false;
         setIsPlaying(false);
         setStatus('Stream connection error. Click Retry.');
         setStreamHealth('unhealthy');
       }
+    };
+
+    audio.play().then(() => {
+      if (attemptRef.current !== attempt) return;
+      switchingRef.current = false;
+      setIsPlaying(true);
+      setStatus('Playing Live');
+      setStreamHealth('healthy');
+    }).catch((err) => {
+      if (attemptRef.current !== attempt) return;
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        switchingRef.current = false;
+        setIsPlaying(false);
+        setStatus('Playback blocked. Click play again.');
+        return;
+      }
+      console.warn(`Playback failed for variant index ${index} (${src}):`, err);
+      failover();
     });
-  }, [getActiveStreamUrl, isMuted, volume, urlVariants]);
+  }, [getActiveStreamUrl, getAudio, isMuted, volume, urlVariants]);
 
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
+      attemptRef.current++; // invalidate any pending play() attempt
+      switchingRef.current = false;
+      wasPlayingRef.current = false;
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -101,40 +131,41 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
     }
   }, [isPlaying, currentVariantIndex, playAudioVariant]);
 
-  // Clean up audio element on unmount
+  // Reset logo error state when logo changes (audio teardown lives in the unmount effect)
   useEffect(() => {
     setLogoError(false);
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
-    };
   }, [logoUrl]);
 
-  // Handle native audio events
+  // Attach native audio events. The element is created eagerly so listeners
+  // exist from mount; previously they were never attached because audioRef
+  // was null on first render and the effect never re-ran.
   useEffect(() => {
-    if (!audioRef.current) return;
-    const audio = audioRef.current;
+    const audio = getAudio();
+    if (!audio) return;
 
     const handlePlaying = () => {
+      wasPlayingRef.current = true;
       setIsPlaying(true);
       setStatus('Playing Live');
       setStreamHealth('healthy');
     };
 
     const handlePause = () => {
+      if (switchingRef.current) return; // transient pause while switching variants
+      wasPlayingRef.current = false;
       setIsPlaying(false);
       setStatus('Paused');
     };
 
     const handleError = () => {
-      console.warn("Native audio onerror event fired");
-      if (currentVariantIndex + 1 < urlVariants.length) {
-        const nextIdx = currentVariantIndex + 1;
-        setCurrentVariantIndex(nextIdx);
-        playAudioVariant(nextIdx);
+      // Initial-connection load failures surface as play() rejections (handled
+      // there); only react to mid-stream drops here so we never double-advance.
+      if (!wasPlayingRef.current) return;
+      wasPlayingRef.current = false;
+      const index = currentVariantRef.current;
+      if (index + 1 < urlVariants.length) {
+        setCurrentVariantIndex(index + 1);
+        playAudioVariant(index + 1);
       } else {
         setIsPlaying(false);
         setStatus('Stream offline');
@@ -151,7 +182,19 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ streamUrl, logoUrl, se
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
     };
-  }, [currentVariantIndex, urlVariants, playAudioVariant]);
+  }, [getAudio, urlVariants, playAudioVariant]);
+
+  // Clean up audio element on unmount only
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Fetch metadata periodically
   useEffect(() => {

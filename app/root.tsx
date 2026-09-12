@@ -11,7 +11,8 @@ import type { Route } from "./+types/root";
 import { ThemeProvider } from "./components/theme-provider";
 import "./app.css";
 
-// Export action for POST requests to root
+// POST / dispatches to the root module's action, not the index route's.
+// Removing this breaks player creation with 405. Do not delete.
 export { action } from "./routes/_index";
 
 export const links: Route.LinksFunction = () => [
@@ -35,6 +36,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(!t){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}if(t==="dark"){document.documentElement.classList.add("dark")}}catch(e){}})()`,
+          }}
+        />
       </head>
       <body>
         {children}

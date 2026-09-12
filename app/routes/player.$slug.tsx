@@ -1,6 +1,6 @@
 import type { Route } from "./+types/player.$slug";
 import { useLoaderData, Link } from "react-router";
-import { getSlug, incrementAccessCount } from "../services/slug-storage.server";
+import { getSlug, incrementAccessCount, type ServerType } from "../services/slug-storage.server";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { ThemeToggle } from "../components/ThemeToggle";
 
@@ -40,7 +40,7 @@ interface LoaderData {
   slug: string;
   streamUrl: string;
   logoUrl?: string;
-  serverType: any;
+  serverType: ServerType;
 }
 
 export default function PlayerRoute() {
