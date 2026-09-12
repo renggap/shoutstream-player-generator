@@ -138,3 +138,6 @@ out/
 # Temporary files
 *.tmp
 *.temp
+
+# wrangler local dev state
+.wrangler/
