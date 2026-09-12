@@ -40,36 +40,45 @@ export async function proxyFetch(url: string): Promise<Response> {
 }
 
 /**
- * Parse metadata from Icecast /status-json.xsl response
+ * Parse metadata from Icecast /status-json.xsl response.
+ * When the server exposes multiple mounts, pick the one matching the
+ * stream's mount path instead of blindly taking source[0] (which can be a
+ * different station entirely).
  */
-function parseIcecastMetadata(data: any): { songTitle: string; listeners: string | null } {
-  try {
-    const icestats = data.icestats || data;
-    let source = icestats.source;
+function makeIcecastParser(streamPathname: string): (data: any) => { songTitle: string; listeners: string | null } {
+  const mount = streamPathname.replace(/\/$/, '').toLowerCase();
+  return (data: any) => {
+    try {
+      const icestats = data.icestats || data;
+      let source = icestats.source;
 
-    // Handle source as an array - get the first element
-    if (Array.isArray(source) && source.length > 0) {
-      source = source[0];
-    }
+      if (Array.isArray(source)) {
+        const match = source.find((s: any) =>
+          typeof s?.listenurl === 'string' &&
+          s.listenurl.replace(/^https?:\/\/[^/]+/i, '').replace(/\/$/, '').toLowerCase() === mount
+        );
+        source = match || (source.length > 0 ? source[0] : undefined);
+      }
 
-    if (source && typeof source === 'object') {
+      if (source && typeof source === 'object') {
+        return {
+          songTitle: source.title || source.server_name || 'Unknown Song',
+          listeners: source.listeners !== undefined && source.listeners !== null ? String(source.listeners) : null,
+        };
+      }
+
+      // Fallback to server-level data
       return {
-        songTitle: source.title || source.server_name || 'Unknown Song',
-        listeners: source.listeners !== undefined && source.listeners !== null ? String(source.listeners) : null,
+        songTitle: icestats.server_name || icestats.title || 'Unknown Song',
+        listeners: icestats.listeners !== undefined && icestats.listeners !== null ? String(icestats.listeners) : null,
+      };
+    } catch {
+      return {
+        songTitle: 'Unknown Song',
+        listeners: null,
       };
     }
-
-    // Fallback to server-level data
-    return {
-      songTitle: icestats.server_name || icestats.title || 'Unknown Song',
-      listeners: icestats.listeners !== undefined && icestats.listeners !== null ? String(icestats.listeners) : null,
-    };
-  } catch {
-    return {
-      songTitle: 'Unknown Song',
-      listeners: null,
-    };
-  }
+  };
 }
 
 /**
@@ -300,8 +309,8 @@ export async function fetchStreamMetadata(
       console.log(`[metadata] Fetching from Icecast endpoint`);
       const result = await tryFetchEndpoint(
         `${baseUrl}/status-json.xsl`,
-        parseIcecastMetadata,
-        true // some Icecast builds return text/html content-type for this XSLT endpoint
+        makeIcecastParser(url.pathname),
+        false // JSON path; tryFetchEndpoint already parses text/html-JSON bodies via JSON.parse fallback
       );
       if (result.success && result.data) {
         return result.data;
