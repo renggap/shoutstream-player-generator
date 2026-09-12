@@ -2,8 +2,10 @@
 FROM node:20-alpine AS build-env
 WORKDIR /app
 
-# Copy package files
+# Copy package files + npmrc (legacy-peer-deps needed: @react-router/cloudflare
+# peers workers-types ^4 while wrangler peers ^5 - no version satisfies both)
 COPY package*.json ./
+COPY .npmrc ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci
@@ -18,8 +20,9 @@ RUN npm run build
 FROM node:20-alpine AS production-env
 WORKDIR /app
 
-# Copy package files
+# Copy package files + npmrc
 COPY package*.json ./
+COPY .npmrc ./
 
 # Install only production dependencies
 RUN npm ci --omit=dev
